@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-panel.w3-red.w3-padding-16
+      h1 Erro
+      h2= message
+      if error
+        h3= error.status
+        pre #{error.stack}
+    
+    a.w3-button.w3-teal.w3-margin-top(href="/recursos") Voltar à Página Principal

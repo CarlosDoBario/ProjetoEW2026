@@ -1,0 +1,37 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-card-4
+      header.w3-container.w3-teal.w3-display-container
+        h2 Repositório de Recursos
+        a.w3-button.w3-display-right.w3-margin-right.w3-hover-white(href="/upload") + Novo Recurso
+      
+      .w3-container.w3-padding-16
+        if lista.length > 0
+          table.w3-table-all.w3-hoverable
+            thead
+              tr.w3-light-grey
+                th Título
+                th Tipo
+                th Produtor
+                th Data Registo
+                th Ranking
+                th Ações
+            tbody
+              each r in lista
+                tr
+                  td
+                    a(href="/recursos/" + r._id)= r.titulo
+                  td= r.tipo
+                  td= r.produtor
+                  td= r.dataRegisto.substring(0, 10)
+                  td
+                    span.w3-tag.w3-yellow.w3-round
+                      - var media = r.ranking.numVotos > 0 ? (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) : 0
+                      | #{media} ⭐
+                  td
+                    a.w3-button.w3-small.w3-blue.w3-round(href="/api/recursos/" + r._id + "/download") ⬇ Download
+        else
+          .w3-panel.w3-pale-yellow.w3-border.w3-padding-16
+            p Não existem recursos disponíveis de momento.

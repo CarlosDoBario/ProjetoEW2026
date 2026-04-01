@@ -1,0 +1,24 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-card-4
+      header.w3-container.w3-teal
+        h2 Nova Submissão de Recurso (SIP)
+      
+      form.w3-container.w3-padding-16(action='/upload' method='POST' enctype='multipart/form-data')
+        label.w3-text-teal: b Nome do Produtor
+        input.w3-input.w3-border.w3-light-grey.w3-margin-bottom(type='text' name='produtor' required)
+        
+        label.w3-text-teal: b Visibilidade
+        select.w3-select.w3-border.w3-margin-bottom(name='visibilidade')
+          option(value='público' selected) Público
+          option(value='privado') Privado
+          
+        label.w3-text-teal: b Pacote ZIP do Recurso
+        input.w3-input.w3-border.w3-margin-bottom(type='file' name='recursoZip' accept='.zip' required)
+        
+        .w3-panel.w3-pale-blue.w3-border.w3-padding
+          p.w3-small * O ficheiro ZIP deve conter um ficheiro `manifest.json` na raiz com os metadados.
+
+        button.w3-btn.w3-teal.w3-round-large.w3-margin-top(type='submit') Efetuar Ingestão

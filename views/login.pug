@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-card-4.w3-display-middle(style="width:40%")
+      header.w3-container.w3-teal
+        h2 Login - Repositório
+      form.w3-container.w3-padding-16(action="/login" method="POST")
+        label Email
+        input.w3-input.w3-border.w3-margin-bottom(type="email" name="email" required placeholder="exemplo@mail.com")
+        label Password
+        input.w3-input.w3-border.w3-margin-bottom(type="password" name="password" required)
+        button.w3-button.w3-teal.w3-block.w3-round(type="submit") Entrar
+        p.w3-center
+          a(href="/registo") Não tem conta? Registe-se aqui.

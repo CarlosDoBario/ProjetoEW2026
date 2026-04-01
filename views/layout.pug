@@ -1,0 +1,17 @@
+doctype html
+html
+  head
+    title Repositório EngWeb
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    .w3-bar.w3-teal
+      a.w3-bar-item.w3-button(href="/") Início
+      if user
+        a.w3-bar-item.w3-button(href="/upload") Submeter Recurso
+        .w3-right
+          span.w3-bar-item Bem-vindo, #{user.nome} (#{user.nivel})
+          a.w3-bar-item.w3-button.w3-red(href="/logout") Sair
+      else
+        a.w3-bar-item.w3-button.w3-right(href="/login") Login
+    
+    block content

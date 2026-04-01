@@ -1,0 +1,58 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-card-4
+      header.w3-container.w3-teal
+        h2= recurso.titulo
+        h5= recurso.subtitulo
+      
+      .w3-container.w3-padding-16
+        .w3-row
+          .w3-col.m6
+            p: b Tipo: 
+              span.w3-text-grey= recurso.tipo
+            p: b Produtor: 
+              span.w3-text-grey= recurso.produtor
+            p: b Data Registo: 
+              span.w3-text-grey= recurso.dataRegisto ? recurso.dataRegisto.substring(0, 10) : 'N/A'
+          .w3-col.m6
+            p: b Tags: 
+              each tag in recurso.classificacao
+                span.w3-tag.w3-light-blue.w3-margin-right= tag
+            p: b Avaliação: 
+              span.w3-tag.w3-yellow.w3-round #{recurso.ranking.somaEstrelas} ⭐
+        
+        hr
+        a.w3-button.w3-blue.w3-round(href="/api/recursos/" + recurso._id + "/download") ⬇ Descarregar Recurso (ZIP)
+        
+        hr
+        h4.w3-text-teal Secção Social (Discussão)
+        
+        .w3-card-2.w3-padding.w3-light-grey.w3-round
+          h5 Criar novo Post
+          form(action="/recursos/" + recurso._id + "/posts" method="POST")
+            .w3-row-padding
+              .w3-half
+                label Autor
+                input.w3-input.w3-border(type="text" name="autor" required)
+              .w3-half
+                label Título
+                input.w3-input.w3-border(type="text" name="titulo" required)
+            label.w3-margin-top Conteúdo
+            textarea.w3-input.w3-border.w3-margin-bottom(name="conteudo" rows="3" required)
+            button.w3-button.w3-teal.w3-round(type="submit") Publicar Post
+
+        hr
+        h5 Discussões Recentes
+        if recurso.posts && recurso.posts.length > 0
+          each p in recurso.posts
+            .w3-container.w3-border.w3-margin-bottom.w3-round.w3-white.w3-padding
+              h6: b= p.titulo
+              p.w3-small.w3-text-grey Por: #{p.autor} em #{p.createdAt.substring(0, 10)}
+              p= p.conteudo
+        else
+          p.w3-text-grey Ainda não há discussões. Seja o primeiro a comentar!
+
+      footer.w3-container.w3-teal.w3-padding
+        a.w3-button.w3-white.w3-border.w3-round(href="/recursos") Voltar à Lista
