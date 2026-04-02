@@ -34,11 +34,11 @@ block content
               label.w3-small.w3-text-grey Classificar material:
               div
                 select.w3-select.w3-border(name="nota" style="width:220px; display:inline-block")
-                  option(value="5") 5*: Muito Bom
-                  option(value="4") 4*: Bom
-                  option(value="3") 3*: Satisfatório
-                  option(value="2") 2*: Mau
-                  option(value="1") 1*: Muito Mau
+                  option(value="5") 5⭐: Muito Bom
+                  option(value="4") 4⭐: Bom
+                  option(value="3") 3⭐: Satisfatório
+                  option(value="2") 2⭐: Mau
+                  option(value="1") 1⭐: Muito Mau
                 button.w3-button.w3-blue.w3-margin-left(type="submit") Votar
         
         hr
@@ -61,7 +61,18 @@ block content
         if recurso.posts && recurso.posts.length > 0
           each p in recurso.posts
             .w3-container.w3-border.w3-margin-bottom.w3-white.w3-padding
-              h6: b= p.titulo
+              .w3-row
+                .w3-col.s10
+                  h6: b= p.titulo
+                .w3-col.s2.w3-right-align
+                  if user && user.nome === p.autor
+                    form(method="POST" action="/posts/" + p._id + "/apagar" style="display:inline")
+                      input(type="hidden" name="recursoId" value=recurso._id)
+                      button.w3-button.w3-red.w3-round.w3-small(
+                        type="submit"
+                        onclick="return confirm('Tens a certeza que queres apagar este post e todos os seus comentários?')"
+                        title="Apagar post"
+                      ) 🗑 Apagar
               p.w3-small.w3-text-grey Por: #{p.autor}
               p= p.conteudo
               
@@ -69,7 +80,15 @@ block content
                 h6.w3-small Comentários:
                 if p.comentarios
                   each c in p.comentarios
-                    p.w3-small: b #{c.autor}: #{c.conteudo}
+                    .w3-row.w3-margin-bottom(style="border-bottom: 1px solid #ddd; padding-bottom: 4px")
+                      .w3-col.s10
+                        p.w3-small(style="margin:0"): b #{c.autor}: 
+                          span(style="font-weight:normal")= " " + c.conteudo
+                      .w3-col.s2.w3-right-align
+                        if user && user.nome === c.autor
+                          form(method="POST" action="/posts/" + p._id + "/comentarios/" + c._id + "/apagar" style="display:inline")
+                            input(type="hidden" name="recursoId" value=recurso._id)
+                            button.w3-button.w3-red.w3-round(type="submit" style="padding: 2px 8px; font-size: 11px" onclick="return confirm('Apagar este comentário?')" title="Apagar comentário") 🗑
                 
                 form(method="POST" action="/posts/" + p._id + "/comentarios")
                   input(type="hidden" name="recursoId" value=recurso._id)
