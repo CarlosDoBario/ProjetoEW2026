@@ -9,22 +9,19 @@ exports.ingest = async (req, res) => {
         const zipPath = req.file.path;
         const zip = new AdmZip(zipPath);
         const zipEntries = zip.getEntries();
-
         const manifestEntry = zipEntries.find(e => e.entryName.toLowerCase().includes('manifest'));
         
         if (!manifestEntry) {
-            return res.status(400).json({ erro: "Estrutura inválida: Manifesto não encontrado no SIP." });
+            if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+            return res.status(400).json({ erro: "Manifesto não encontrado no SIP." });
         }
 
         const manifestData = JSON.parse(zip.readAsText(manifestEntry));
-
-        // Processo de Administração: Conversão SIP em AIP
         const storageDir = path.join(__dirname, '../uploads/aips/', req.file.filename);
         if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
 
         zip.extractAllTo(storageDir, true);
 
-        // Persistência no mongo
         const novoRecurso = new Recurso({
             tipo: manifestData.tipo || "Outro",
             titulo: manifestData.titulo,
@@ -38,10 +35,18 @@ exports.ingest = async (req, res) => {
 
         const guardado = await novoRecurso.save();
         res.status(201).json(guardado);
-
     } catch (err) {
-        res.status(500).json({ erro: "Erro no processo de ingestão: " + err.message });
+        res.status(500).json({ erro: "Erro na ingestão: " + err.message });
     }
+};
+
+// FUNÇÃO ESSENCIAL PARA O VOTO FUNCIONAR
+exports.avaliar = (id, nota) => {
+    return Recurso.findByIdAndUpdate(
+        id,
+        { $inc: { "ranking.somaEstrelas": nota, "ranking.numVotos": 1 } },
+        { new: true }
+    );
 };
 
 exports.list = () => Recurso.find().sort({ dataRegisto: -1 });
