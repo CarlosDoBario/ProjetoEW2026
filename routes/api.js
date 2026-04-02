@@ -75,6 +75,32 @@ router.post('/recursos/:id/avaliar', (req, res) => {
     RecursoController.avaliar(req.params.id, parseInt(req.body.nota)).then(dados => res.json(dados)).catch(err => res.status(500).json({ erro: err.message }));
 });
 
+router.delete('/posts/:id', async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ erro: "Post não encontrado." });
+        if (post.autor !== req.body.autorSolicitante)
+            return res.status(403).json({ erro: "Sem permissão para apagar este post." });
+        await Post.findByIdAndDelete(req.params.id);
+        res.json({ mensagem: "Post apagado com sucesso." });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.delete('/posts/:postId/comentarios/:comentarioId', async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.postId);
+        if (!post) return res.status(404).json({ erro: "Post não encontrado." });
+        const comentario = post.comentarios.id(req.params.comentarioId);
+        if (!comentario) return res.status(404).json({ erro: "Comentário não encontrado." });
+        if (comentario.autor !== req.body.autorSolicitante)
+            return res.status(403).json({ erro: "Sem permissão para apagar este comentário." });
+        await Post.findByIdAndUpdate(req.params.postId, {
+            $pull: { comentarios: { _id: req.params.comentarioId } }
+        });
+        res.json({ mensagem: "Comentário apagado com sucesso." });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
 router.post('/posts/:id/comentarios', (req, res) => {
     const novoComentario = { autor: req.body.autor, conteudo: req.body.conteudo, data: new Date() };
     PostController.adicionarComentario(req.params.id, novoComentario).then(dados => res.status(201).json(dados)).catch(err => res.status(500).json({ erro: err.message }));

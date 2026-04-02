@@ -44,6 +44,28 @@ router.post('/recursos/:id/avaliar', auth.verificaAcesso, (req, res) => {
         .then(() => res.redirect('/recursos/' + req.params.id)).catch(e => res.render('error', { error: e }));
 });
 
+router.post('/posts/:id/apagar', auth.verificaAcesso, (req, res) => {
+    const recursoId = req.body.recursoId;
+    axios.delete(`${apiURL}/posts/${req.params.id}`, { data: { autorSolicitante: req.user.nome } })
+        .then(() => res.redirect('/recursos/' + recursoId))
+        .catch(e => {
+            if (e.response && e.response.status === 403)
+                return res.render('error', { message: "Não tens permissão para apagar este post." });
+            res.render('error', { error: e });
+        });
+});
+
+router.post('/posts/:postId/comentarios/:comentarioId/apagar', auth.verificaAcesso, (req, res) => {
+    const recursoId = req.body.recursoId;
+    axios.delete(`${apiURL}/posts/${req.params.postId}/comentarios/${req.params.comentarioId}`, { data: { autorSolicitante: req.user.nome } })
+        .then(() => res.redirect('/recursos/' + recursoId))
+        .catch(e => {
+            if (e.response && e.response.status === 403)
+                return res.render('error', { message: "Não tens permissão para apagar este comentário." });
+            res.render('error', { error: e });
+        });
+});
+
 router.post('/posts/:id/comentarios', auth.verificaAcesso, (req, res) => {
     axios.post(`${apiURL}/posts/${req.params.id}/comentarios`, { autor: req.user.nome, conteudo: req.body.conteudo })
         .then(() => res.redirect('/recursos/' + req.body.recursoId)) // Redireciona para o recurso pai
