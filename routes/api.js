@@ -15,6 +15,26 @@ const RecursoController = require('../controllers/recurso');
 const secret = "EngWeb2026_Projeto_Secret";
 const upload = multer({ dest: 'uploads/sips/' });
 
+router.get('/usuarios/:id', async (req, res) => {
+    try {
+        const user = await User.consultar(req.params.id);
+        if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
+        const { password, ...dados } = user._doc;
+        res.json(dados);
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.patch('/usuarios/:id/password', async (req, res) => {
+    try {
+        const user = await User.consultar(req.params.id);
+        if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
+        if (user.password !== req.body.passwordAtual)
+            return res.status(403).json({ erro: "Password atual incorreta." });
+        await User.atualizar(req.params.id, { password: req.body.passwordNova });
+        res.json({ mensagem: "Password atualizada com sucesso." });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
 router.post('/usuarios/login', (req, res) => {
     User.consultarPorEmail(req.body.email).then(dados => {
         if (dados && dados.password === req.body.password) {

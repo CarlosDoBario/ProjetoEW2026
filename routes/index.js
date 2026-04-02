@@ -9,6 +9,28 @@ const auth = require('../auth/auth');
 const upload = multer({ dest: 'uploads/sips/' });
 const apiURL = "http://localhost:7777/api";
 
+router.get('/perfil', auth.verificaAcesso, async (req, res) => {
+    try {
+        const [userRes, recursosRes] = await Promise.all([
+            axios.get(`${apiURL}/usuarios/${req.user.id}`),
+            axios.get(`${apiURL}/recursos`)
+        ]);
+        const meusRecursos = recursosRes.data.filter(r => r.produtor === req.user.nome);
+        res.render('perfil', { user: req.user, perfil: userRes.data, meusRecursos, query: req.query });
+    } catch (e) { res.render('error', { error: e }); }
+});
+
+router.post('/perfil/password', auth.verificaAcesso, (req, res) => {
+    axios.patch(`${apiURL}/usuarios/${req.user.id}/password`, {
+        passwordAtual: req.body.passwordAtual,
+        passwordNova: req.body.passwordNova
+    }).then(() => res.redirect('/perfil?sucesso=1'))
+      .catch(e => {
+          const msg = e.response?.data?.erro || "Erro ao alterar password.";
+          res.redirect('/perfil?erro=' + encodeURIComponent(msg));
+      });
+});
+
 router.get('/login', (req, res) => res.render('login'));
 
 router.post('/login', (req, res) => {
