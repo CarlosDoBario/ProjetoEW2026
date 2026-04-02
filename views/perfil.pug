@@ -1,0 +1,139 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+
+    //- Mensagens de feedback da alteração de password
+    if query && query.sucesso
+      .w3-panel.w3-green.w3-round
+        p ✅ Password alterada com sucesso.
+    if query && query.erro
+      .w3-panel.w3-red.w3-round
+        p ❌ #{query.erro}
+
+    .w3-row-padding
+
+      //- --- Coluna Esquerda: Dados + Password ---
+      .w3-col.m4
+
+        .w3-card-4.w3-margin-bottom
+          header.w3-container.w3-teal
+            h3 👤 O Meu Perfil
+          .w3-container.w3-padding-16
+
+            p
+              b Nome:
+              br
+              span.w3-text-grey= perfil.nome
+
+            p
+              b Email:
+              br
+              span.w3-text-grey= perfil.email
+
+            p
+              b Filiação:
+              br
+              span.w3-text-grey= perfil.filiacao || 'Não definida'
+
+            p
+              b Nível de Acesso:
+              br
+              - const nivelCores = { administrador: 'w3-red', produtor: 'w3-blue', consumidor: 'w3-green' }
+              span.w3-tag.w3-round(class=nivelCores[perfil.nivel] || 'w3-grey')= perfil.nivel
+
+            p
+              b Membro desde:
+              br
+              span.w3-text-grey= perfil.dataRegisto ? perfil.dataRegisto.substring(0, 10) : 'N/A'
+
+        //- --- Card de Alteração de Password ---
+        .w3-card-4
+          header.w3-container.w3-dark-grey
+            h4 🔑 Alterar Password
+          .w3-container.w3-padding-16
+            form(method="POST" action="/perfil/password")
+              label.w3-small Password Atual
+              input.w3-input.w3-border.w3-margin-bottom(
+                type="password"
+                name="passwordAtual"
+                required
+                placeholder="Introduz a password atual"
+              )
+              label.w3-small Nova Password
+              input.w3-input.w3-border.w3-margin-bottom(
+                type="password"
+                name="passwordNova"
+                required
+                placeholder="Introduz a nova password"
+                minlength="4"
+              )
+              label.w3-small Confirmar Nova Password
+              input.w3-input.w3-border.w3-margin-bottom(
+                type="password"
+                name="passwordConfirm"
+                required
+                placeholder="Repete a nova password"
+                minlength="4"
+              )
+              button.w3-button.w3-dark-grey.w3-round.w3-margin-top(
+                type="submit"
+                onclick="return validarPassword()"
+              ) Guardar Nova Password
+
+      //- --- Coluna Direita: Recursos Carregados ---
+      .w3-col.m8
+
+        .w3-card-4
+          header.w3-container.w3-teal
+            h3 📦 Recursos que Carreguei
+            p.w3-small(style="margin:0; padding-bottom: 8px; opacity: 0.85") #{meusRecursos.length} recurso(s) encontrado(s)
+
+          .w3-container.w3-padding-16
+
+            if meusRecursos && meusRecursos.length > 0
+              each r in meusRecursos
+                .w3-card-2.w3-margin-bottom.w3-white.w3-hover-shadow
+                  .w3-container.w3-padding
+                    .w3-row
+                      .w3-col.s9
+                        a.w3-text-teal(href="/recursos/" + r._id style="text-decoration:none")
+                          h5(style="margin: 0 0 4px 0")= r.titulo
+                        if r.subtitulo
+                          p.w3-small.w3-text-grey(style="margin: 0 0 6px 0")= r.subtitulo
+                        div
+                          span.w3-tag.w3-small.w3-light-blue.w3-margin-right= r.tipo
+                          if r.visibilidade === 'privado'
+                            span.w3-tag.w3-small.w3-orange 🔒 privado
+                          else
+                            span.w3-tag.w3-small.w3-green 🌐 público
+                          if r.classificacao && r.classificacao.length > 0
+                            each tag in r.classificacao
+                              span.w3-tag.w3-small.w3-pale-blue.w3-margin-left= tag
+                      .w3-col.s3.w3-right-align
+                        p.w3-small.w3-text-grey(style="margin: 0 0 4px 0")= r.dataRegisto ? r.dataRegisto.substring(0, 10) : ''
+                        if r.ranking && r.ranking.numVotos > 0
+                          span.w3-tag.w3-yellow.w3-round.w3-small ⭐ #{ (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) }
+                        else
+                          span.w3-small.w3-text-grey Sem votos
+            else
+              .w3-panel.w3-pale-blue.w3-round
+                p.w3-text-grey Ainda não carregaste nenhum recurso na plataforma.
+                a.w3-button.w3-teal.w3-round.w3-small(href="/upload") Submeter primeiro recurso
+
+  //- Script de validação client-side das passwords
+  script.
+    function validarPassword() {
+      const nova = document.querySelector('[name="passwordNova"]').value;
+      const confirm = document.querySelector('[name="passwordConfirm"]').value;
+      if (nova !== confirm) {
+        alert('As passwords não coincidem. Por favor verifica.');
+        return false;
+      }
+      return true;
+    }
+
+    //- Limpar parâmetros da URL após mostrar mensagem (UX)
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
