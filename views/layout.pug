@@ -8,6 +8,10 @@ html
       a.w3-bar-item.w3-button(href="/") Início
       if user
         a.w3-bar-item.w3-button(href="/upload") Submeter Recurso
+        
+        if user.nivel === 'administrador'
+          a.w3-bar-item.w3-button.w3-yellow(href="/admin") ⚙️ Painel Admin
+
         .w3-right
           a.w3-bar-item.w3-button(href="/perfil") 👤 #{user.nome} (#{user.nivel})
           a.w3-bar-item.w3-button.w3-red(href="/logout") Sair

@@ -3,35 +3,44 @@ extends layout
 block content
   .w3-container.w3-margin-top
     .w3-card-4
-      header.w3-container.w3-teal.w3-display-container
-        h2 Repositório de Recursos
-        a.w3-button.w3-display-right.w3-margin-right.w3-hover-white(href="/upload") + Novo Recurso
+      header.w3-container.w3-teal
+        h2 📚 Recursos Disponíveis
+        p Consulta e descarrega os materiais partilhados.
       
       .w3-container.w3-padding-16
-        if lista.length > 0
+        form(method="GET" action="/recursos" class="w3-margin-bottom")
+          .w3-row-padding
+            .w3-col.m10.s9
+              input.w3-input.w3-border.w3-round(
+                type="text" 
+                name="search" 
+                placeholder="Pesquisar recursos por título..." 
+                value=search
+              )
+            .w3-col.m2.s3
+              button.w3-button.w3-teal.w3-block.w3-round(type="submit") 🔍 Pesquisar
+              
+        if lista && lista.length > 0
           table.w3-table-all.w3-hoverable
             thead
-              tr.w3-light-grey
+              tr.w3-dark-grey
                 th Título
-                th Tipo
                 th Produtor
-                th Data Registo
-                th Ranking
-                th Ações
+                th Visibilidade
+                th Data de Registo
             tbody
               each r in lista
                 tr
                   td
-                    a(href="/recursos/" + r._id)= r.titulo
-                  td= r.tipo
+                    a(href="/recursos/" + r._id).w3-text-teal.w3-hover-text-amber **#{r.titulo}**
                   td= r.produtor
+                  td
+                    span.w3-tag.w3-round(class=(r.visibilidade === 'publico' ? 'w3-green' : 'w3-orange'))= r.visibilidade
                   td= r.dataRegisto.substring(0, 10)
-                  td
-                    span.w3-tag.w3-yellow.w3-round
-                      - var media = r.ranking.numVotos > 0 ? (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) : 0
-                      | #{media} ⭐
-                  td
-                    a.w3-button.w3-small.w3-blue.w3-round(href="/api/recursos/" + r._id + "/download") ⬇ Download
         else
-          .w3-panel.w3-pale-yellow.w3-border.w3-padding-16
-            p Não existem recursos disponíveis de momento.
+          .w3-panel.w3-pale-yellow.w3-border
+            p ℹ️ Nenhum recurso encontrado. Tenta outra pesquisa ou faz upload de um novo ficheiro!
+            
+    if user && user.nivel !== 'consumidor'
+      .w3-container.w3-margin-top.w3-center
+        a.w3-button.w3-teal.w3-round-large(href="/upload") 📤 Submeter Novo Recurso

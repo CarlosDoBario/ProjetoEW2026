@@ -1,0 +1,47 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-card-4
+      header.w3-container.w3-teal
+        h2 ⚙️ Painel de Administração
+        p Gestão de Utilizadores do Sistema
+      
+      .w3-container.w3-padding-16
+        table.w3-table-all.w3-hoverable
+          thead
+            tr.w3-dark-grey
+              th Nome
+              th Email
+              th Filiação
+              th Nível Atual
+              th Mudar Permissão
+              th Ações
+          tbody
+            each u in usuarios
+              tr
+                td= u.nome
+                td= u.email
+                td= u.filiacao || 'Não definida'
+                td
+                  - const nivelCores = { administrador: 'w3-red', produtor: 'w3-blue', consumidor: 'w3-green' }
+                  span.w3-tag.w3-round(class=nivelCores[u.nivel] || 'w3-grey')= u.nivel
+                td
+                  form(method="POST" action="/admin/usuarios/" + u._id + "/nivel")
+                    select.w3-select.w3-border(name="nivel" style="width: auto; display: inline-block; margin-right: 8px;")
+                      option(value="consumidor" selected=(u.nivel === 'consumidor')) Consumidor
+                      option(value="produtor" selected=(u.nivel === 'produtor')) Produtor
+                      option(value="administrador" selected=(u.nivel === 'administrador')) Administrador
+                    button.w3-button.w3-small.w3-blue.w3-round(type="submit") Alterar
+                td
+                  if u._id.toString() !== user.id.toString()
+                    form(method="POST" action="/admin/usuarios/" + u._id + "/apagar")
+                      button.w3-button.w3-small.w3-red.w3-round(
+                        type="submit" 
+                        onclick="return confirm('Tens a certeza que queres eliminar este utilizador? Esta ação é irreversível!')"
+                      ) 🗑 Apagar
+                  else
+                    span.w3-text-grey (Tu)
+                    
+    .w3-container.w3-margin-top
+      a.w3-button.w3-teal(href="/recursos") Voltar aos Recursos

@@ -49,7 +49,13 @@ router.post('/registo', (req, res) => {
 router.get('/logout', (req, res) => { res.clearCookie('token'); res.redirect('/login'); });
 
 router.get('/recursos', auth.verificaAcesso, (req, res) => {
-    axios.get(`${apiURL}/recursos`).then(r => res.render('recursos', { lista: r.data, user: req.user })).catch(err => res.render('error', { error: err }));
+    const searchTerm = req.query.search || '';
+    
+    axios.get(`${apiURL}/recursos`, { params: { search: searchTerm } })
+        .then(r => {
+            res.render('recursos', { lista: r.data, user: req.user, search: searchTerm });
+        })
+        .catch(err => res.render('error', { error: err }));
 });
 
 router.get('/recursos/:id', auth.verificaAcesso, (req, res) => {
@@ -68,29 +74,33 @@ router.post('/recursos/:id/avaliar', auth.verificaAcesso, (req, res) => {
 
 router.post('/posts/:id/apagar', auth.verificaAcesso, (req, res) => {
     const recursoId = req.body.recursoId;
-    axios.delete(`${apiURL}/posts/${req.params.id}`, { data: { autorSolicitante: req.user.nome } })
-        .then(() => res.redirect('/recursos/' + recursoId))
-        .catch(e => {
-            if (e.response && e.response.status === 403)
-                return res.render('error', { message: "Não tens permissão para apagar este post." });
-            res.render('error', { error: e });
-        });
+    axios.delete(`${apiURL}/posts/${req.params.id}`, {
+        headers: { Authorization: `Bearer ${req.cookies.token}` }
+    })
+    .then(() => res.redirect('/recursos/' + recursoId))
+    .catch(e => {
+        if (e.response && e.response.status === 403)
+            return res.render('error', { message: "Não tens permissão para apagar este post." });
+        res.render('error', { error: e });
+    });
 });
 
 router.post('/posts/:postId/comentarios/:comentarioId/apagar', auth.verificaAcesso, (req, res) => {
     const recursoId = req.body.recursoId;
-    axios.delete(`${apiURL}/posts/${req.params.postId}/comentarios/${req.params.comentarioId}`, { data: { autorSolicitante: req.user.nome } })
-        .then(() => res.redirect('/recursos/' + recursoId))
-        .catch(e => {
-            if (e.response && e.response.status === 403)
-                return res.render('error', { message: "Não tens permissão para apagar este comentário." });
-            res.render('error', { error: e });
-        });
+    axios.delete(`${apiURL}/posts/${req.params.postId}/comentarios/${req.params.comentarioId}`, {
+        headers: { Authorization: `Bearer ${req.cookies.token}` }
+    })
+    .then(() => res.redirect('/recursos/' + recursoId))
+    .catch(e => {
+        if (e.response && e.response.status === 403)
+            return res.render('error', { message: "Não tens permissão para apagar este comentário." });
+        res.render('error', { error: e });
+    });
 });
 
 router.post('/posts/:id/comentarios', auth.verificaAcesso, (req, res) => {
     axios.post(`${apiURL}/posts/${req.params.id}/comentarios`, { autor: req.user.nome, conteudo: req.body.conteudo })
-        .then(() => res.redirect('/recursos/' + req.body.recursoId)) // Redireciona para o recurso pai
+        .then(() => res.redirect('/recursos/' + req.body.recursoId)) 
         .catch(e => res.render('error', { error: e }));
 });
 
@@ -108,6 +118,34 @@ router.post('/upload', auth.verificaAcesso, upload.single('recursoZip'), (req, r
         fs.unlinkSync(req.file.path);
         res.redirect('/recursos');
     }).catch(err => res.render('error', { error: err }));
+});
+
+router.get('/admin', auth.verificaAcesso, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Acesso Negado. Esta área é apenas para administradores." });
+    try {
+        const usersRes = await axios.get(`${apiURL}/usuarios`, {
+            headers: { Authorization: `Bearer ${req.cookies.token}` }
+        });
+        res.render('admin', { user: req.user, usuarios: usersRes.data });
+    } catch (e) { res.render('error', { error: e }); }
+});
+
+router.post('/admin/usuarios/:id/nivel', auth.verificaAcesso, (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Sem permissão." });
+    axios.patch(`${apiURL}/usuarios/${req.params.id}/nivel`, { nivel: req.body.nivel }, {
+        headers: { Authorization: `Bearer ${req.cookies.token}` }
+    })
+    .then(() => res.redirect('/admin'))
+    .catch(e => res.render('error', { error: e }));
+});
+
+router.post('/admin/usuarios/:id/apagar', auth.verificaAcesso, (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Sem permissão." });
+    axios.delete(`${apiURL}/usuarios/${req.params.id}`, {
+        headers: { Authorization: `Bearer ${req.cookies.token}` }
+    })
+    .then(() => res.redirect('/admin'))
+    .catch(e => res.render('error', { error: e }));
 });
 
 router.get('/', (req, res) => res.redirect('/recursos'));

@@ -15,6 +15,19 @@ const RecursoController = require('../controllers/recurso');
 const secret = "EngWeb2026_Projeto_Secret";
 const upload = multer({ dest: 'uploads/sips/' });
 
+function verificaToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ erro: "Token em falta." });
+
+    jwt.verify(token, secret, (err, user) => {
+        if (err) return res.status(403).json({ erro: "Token inválido ou expirado." });
+        req.user = user; 
+        next();
+    });
+}
+
 router.get('/usuarios/:id', async (req, res) => {
     try {
         const user = await User.consultar(req.params.id);
@@ -50,7 +63,13 @@ router.post('/usuarios/registo', (req, res) => {
 
 router.get('/recursos', async (req, res) => {
     try {
-        const recursos = await Recurso.find().sort({ dataRegisto: -1 });
+        let query = {};
+        
+        if (req.query.search) {
+            query = { titulo: { $regex: req.query.search, $options: 'i' } };
+        }
+        
+        const recursos = await Recurso.find(query).sort({ dataRegisto: -1 });
         res.json(recursos);
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
@@ -85,7 +104,6 @@ router.get('/recursos/:id/download', async (req, res) => {
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
-// --- SOCIAL ---
 router.post('/recursos/:id/posts', (req, res) => {
     const novoPost = new Post({ recursoId: req.params.id, autor: req.body.autor, titulo: req.body.titulo, conteudo: req.body.conteudo });
     novoPost.save().then(dados => res.status(201).json(dados)).catch(err => res.status(500).json({ erro: err.message }));
@@ -95,25 +113,32 @@ router.post('/recursos/:id/avaliar', (req, res) => {
     RecursoController.avaliar(req.params.id, parseInt(req.body.nota)).then(dados => res.json(dados)).catch(err => res.status(500).json({ erro: err.message }));
 });
 
-router.delete('/posts/:id', async (req, res) => {
+router.delete('/posts/:id', verificaToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ erro: "Post não encontrado." });
-        if (post.autor !== req.body.autorSolicitante)
-            return res.status(403).json({ erro: "Sem permissão para apagar este post." });
+
+        if (post.autor !== req.user.nome && req.user.nivel !== 'administrador') {
+            return res.status(403).json({ erro: "Não tens permissão para apagar este post." });
+        }
+
         await Post.findByIdAndDelete(req.params.id);
         res.json({ mensagem: "Post apagado com sucesso." });
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
-router.delete('/posts/:postId/comentarios/:comentarioId', async (req, res) => {
+router.delete('/posts/:postId/comentarios/:comentarioId', verificaToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.postId);
         if (!post) return res.status(404).json({ erro: "Post não encontrado." });
+
         const comentario = post.comentarios.id(req.params.comentarioId);
         if (!comentario) return res.status(404).json({ erro: "Comentário não encontrado." });
-        if (comentario.autor !== req.body.autorSolicitante)
-            return res.status(403).json({ erro: "Sem permissão para apagar este comentário." });
+
+        if (comentario.autor !== req.user.nome && req.user.nivel !== 'administrador') {
+            return res.status(403).json({ erro: "Não tens permissão para apagar este comentário." });
+        }
+
         await Post.findByIdAndUpdate(req.params.postId, {
             $pull: { comentarios: { _id: req.params.comentarioId } }
         });
@@ -124,6 +149,30 @@ router.delete('/posts/:postId/comentarios/:comentarioId', async (req, res) => {
 router.post('/posts/:id/comentarios', (req, res) => {
     const novoComentario = { autor: req.body.autor, conteudo: req.body.conteudo, data: new Date() };
     PostController.adicionarComentario(req.params.id, novoComentario).then(dados => res.status(201).json(dados)).catch(err => res.status(500).json({ erro: err.message }));
+});
+
+router.get('/usuarios', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    try {
+        const users = await User.listar(); 
+        res.json(users);
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.patch('/usuarios/:id/nivel', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    try {
+        await User.atualizar(req.params.id, { nivel: req.body.nivel });
+        res.json({ mensagem: "Nível atualizado com sucesso." });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.delete('/usuarios/:id', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    try {
+        await User.eliminar(req.params.id); 
+        res.json({ mensagem: "Utilizador removido com sucesso." });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
 module.exports = router;

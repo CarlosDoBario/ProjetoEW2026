@@ -40,7 +40,6 @@ exports.ingest = async (req, res) => {
     }
 };
 
-// FUNÇÃO ESSENCIAL PARA O VOTO FUNCIONAR
 exports.avaliar = (id, nota) => {
     return Recurso.findByIdAndUpdate(
         id,

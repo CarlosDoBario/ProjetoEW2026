@@ -3,7 +3,6 @@ extends layout
 block content
   .w3-container.w3-margin-top
 
-    //- Mensagens de feedback da alteração de password
     if query && query.sucesso
       .w3-panel.w3-green.w3-round
         p ✅ Password alterada com sucesso.
@@ -13,7 +12,6 @@ block content
 
     .w3-row-padding
 
-      //- --- Coluna Esquerda: Dados + Password ---
       .w3-col.m4
 
         .w3-card-4.w3-margin-bottom
@@ -47,7 +45,6 @@ block content
               br
               span.w3-text-grey= perfil.dataRegisto ? perfil.dataRegisto.substring(0, 10) : 'N/A'
 
-        //- --- Card de Alteração de Password ---
         .w3-card-4
           header.w3-container.w3-dark-grey
             h4 🔑 Alterar Password
@@ -81,7 +78,6 @@ block content
                 onclick="return validarPassword()"
               ) Guardar Nova Password
 
-      //- --- Coluna Direita: Recursos Carregados ---
       .w3-col.m8
 
         .w3-card-4
@@ -121,7 +117,6 @@ block content
                 p.w3-text-grey Ainda não carregaste nenhum recurso na plataforma.
                 a.w3-button.w3-teal.w3-round.w3-small(href="/upload") Submeter primeiro recurso
 
-  //- Script de validação client-side das passwords
   script.
     function validarPassword() {
       const nova = document.querySelector('[name="passwordNova"]').value;
@@ -133,7 +128,6 @@ block content
       return true;
     }
 
-    //- Limpar parâmetros da URL após mostrar mensagem (UX)
     if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
