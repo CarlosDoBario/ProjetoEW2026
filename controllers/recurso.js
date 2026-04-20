@@ -48,6 +48,30 @@ exports.avaliar = (id, nota) => {
     );
 };
 
+exports.incrementarDownloads = (id) => {
+    return Recurso.findByIdAndUpdate(
+        id,
+        { $inc: { downloads: 1 } },
+        { new: true }
+    );
+};
+
+// Retorna os 3 recursos mais recentes (últimos 7 dias)
+exports.getRecentes = () => {
+    const umaSemanaAtras = new Date();
+    umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
+    return Recurso.find({ dataRegisto: { $gte: umaSemanaAtras } })
+                  .sort({ dataRegisto: -1 })
+                  .limit(3);
+};
+
+// Retorna os 5 recursos com melhor ranking (baseado na soma de estrelas)
+exports.getTopRated = () => {
+    return Recurso.find()
+                  .sort({ "ranking.somaEstrelas": -1 })
+                  .limit(5);
+};
+
 exports.list = () => Recurso.find().sort({ dataRegisto: -1 });
 exports.findById = (id) => Recurso.findById(id);
 exports.update = (id, data) => Recurso.findByIdAndUpdate(id, data, { new: true });
