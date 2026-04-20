@@ -31,6 +31,7 @@ const recursoSchema = new mongoose.Schema({
     classificacao: [{ 
         type: String 
     }],
+    downloads: { type: Number, default: 0 },
     ranking: {
         somaEstrelas: { type: Number, default: 0 },
         numVotos: { type: Number, default: 0 }
