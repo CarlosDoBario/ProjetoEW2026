@@ -76,6 +76,26 @@ router.get('/recursos', async (req, res) => {
 
 router.post('/recursos', upload.single('recursoZip'), RecursoController.ingest);
 
+router.get('/recursos/recentes', (req, res) => {
+    // Atenção: Usar RecursoController e não Recurso
+    RecursoController.getRecentes()
+        .then(dados => res.json(dados))
+        .catch(erro => res.status(500).json(erro));
+});
+
+router.get('/recursos/top', (req, res) => {
+    // Atenção: Usar RecursoController e não Recurso
+    RecursoController.getTopRated()
+        .then(dados => res.json(dados))
+        .catch(erro => res.status(500).json(erro));
+});
+
+router.post('/recursos/:id/download', (req, res) => {
+    RecursoController.incrementarDownloads(req.params.id)
+        .then(dados => res.json(dados))
+        .catch(erro => res.status(500).json(erro));
+});
+
 router.get('/recursos/:id', async (req, res) => {
     try {
         const recurso = await Recurso.findById(req.params.id);

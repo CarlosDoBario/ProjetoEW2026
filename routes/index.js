@@ -5,6 +5,7 @@ const multer = require('multer');
 const FormData = require('form-data');
 const fs = require('fs');
 const auth = require('../auth/auth'); 
+const AdmZip = require('adm-zip');
 
 const upload = multer({ dest: 'uploads/sips/' });
 const apiURL = "http://localhost:7777/api";
@@ -58,13 +59,75 @@ router.get('/recursos', auth.verificaAcesso, (req, res) => {
         .catch(err => res.render('error', { error: err }));
 });
 
+router.get('/recursos/:id/download', auth.verificaAcesso, async (req, res) => {
+    try {
+        // 1. Incrementa o contador na API
+        await axios.post(`${apiURL}/recursos/${req.params.id}/download`);
+        
+        // 2. Vai buscar a informação do recurso à API
+        const response = await axios.get(`${apiURL}/recursos/${req.params.id}`);
+        const recurso = response.data;
+        
+        // 3. Pega na pasta do AIP e transforma novamente num ZIP (DIP)
+        const zip = new AdmZip();
+        zip.addLocalFolder(recurso.caminhoFicheiro);
+        
+        // 4. Gera um buffer do ZIP para ser enviado na resposta HTTP
+        const zipBuffer = zip.toBuffer();
+        
+        // 5. Cria um nome simpático para o download (ex: tira espaços do título)
+        const nomeFicheiro = recurso.titulo.replace(/\s+/g, '_') + "_EngWeb.zip";
+        
+        // 6. Define os cabeçalhos para forçar o download e envia o buffer
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', `attachment; filename="${nomeFicheiro}"`);
+        res.send(zipBuffer);
+
+    } catch (e) {
+        console.log(e); // Útil para veres no terminal caso falhe algo mais
+        res.render('error', { message: "Erro ao processar o download do ficheiro.", error: e });
+    }
+});
+
 router.get('/recursos/:id', auth.verificaAcesso, (req, res) => {
     axios.get(`${apiURL}/recursos/${req.params.id}`).then(r => res.render('recurso', { recurso: r.data, user: req.user })).catch(err => res.render('error', { error: err }));
 });
 
+router.get('/feed', auth.verificaAcesso, async (req, res) => {
+    try {
+        const [recentesRes, topRes] = await Promise.all([
+            axios.get(`${apiURL}/recursos/recentes`),
+            axios.get(`${apiURL}/recursos/top`)
+        ]);
+        
+        res.render('feed', { 
+            recentes: recentesRes.data, 
+            top: topRes.data, 
+            user: req.user 
+        });
+    } catch (e) {
+        res.render('error', { error: e });
+    }
+});
+
+router.get('/recursos/:id/download', auth.verificaAcesso, async (req, res) => {
+    try {
+        // Incrementa o contador na API
+        await axios.post(`${apiURL}/recursos/${req.params.id}/download`);
+        
+        // Mantém a tua lógica atual de download (exemplo genérico abaixo)
+        const response = await axios.get(`${apiURL}/recursos/${req.params.id}`);
+        const recurso = response.data;
+        res.download(recurso.caminhoFicheiro + ".zip"); // Ajusta conforme a tua lógica de ficheiros
+    } catch (e) {
+        res.render('error', { error: e });
+    }
+});
+
 router.post('/recursos/:id/posts', auth.verificaAcesso, (req, res) => {
     const postData = { titulo: req.body.titulo, conteudo: req.body.conteudo, autor: req.user.nome };
-    axios.post(`${apiURL}/recursos/${req.params.id}/posts`, postData).then(() => res.redirect('/recursos/' + req.params.id)).catch(err => res.render('error', { error: err }));
+    axios.post(`${apiURL}/recursos/${req.params.id}/posts`, postData).then(() => 
+        res.redirect('/recursos/' + req.params.id)).catch(err => res.render('error', { error: err }));
 });
 
 router.post('/recursos/:id/avaliar', auth.verificaAcesso, (req, res) => {
