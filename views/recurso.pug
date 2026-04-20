@@ -41,7 +41,12 @@ block content
                 button.w3-button.w3-blue.w3-margin-left(type="submit") Votar
         
         hr
-        a.w3-button.w3-blue.w3-round(href="/api/recursos/" + recurso._id + "/download") ⬇ Descarregar (ZIP)
+        
+        .w3-margin-top.w3-margin-bottom
+          a.w3-button.w3-blue.w3-round(href="/recursos/" + recurso._id + "/download") ⬇ Descarregar (ZIP)
+          span.w3-margin-left
+            b Nº de Downloads: 
+            | #{recurso.downloads || 0}
         
         hr
         h4.w3-text-teal Secção Social (Discussão)
@@ -95,6 +100,5 @@ block content
                   button.w3-button.w3-teal.w3-small.w3-margin-top(type="submit") Enviar
         else
           p.w3-text-grey Sem discussões ainda.
-
       footer.w3-container.w3-teal.w3-padding
         a.w3-button.w3-white.w3-border(href="/recursos") Voltar

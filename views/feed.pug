@@ -1,0 +1,41 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    
+    .w3-row-padding.w3-margin-top
+      // Coluna dos Recentes
+      .w3-half
+        .w3-card-4
+          header.w3-container.w3-blue
+            h3 🕒 Novas adições! 🕒
+          .w3-container.w3-padding
+            if recentes.length > 0
+              ul.w3-ul.w3-hoverable
+                each r in recentes
+                  li.w3-padding-16
+                    span.w3-large
+                      a(href="/recursos/" + r._id)= r.titulo
+                    br
+                    span Adicionado por: 
+                      b= r.produtor
+                    span.w3-right.w3-tag.w3-small.w3-round= r.dataRegisto.toString().split('T')[0]
+            else
+              p.w3-padding Nenhum recurso novo esta semana.
+
+      // Coluna do Ranking
+      .w3-half
+        .w3-card-4
+          header.w3-container.w3-amber
+            h3.w3-text-white ⭐ Melhores Classificados (Top 5)
+          .w3-container.w3-padding
+            ul.w3-ul.w3-hoverable
+              each r in top
+                li.w3-padding-16
+                  span.w3-large
+                    a(href="/recursos/" + r._id)= r.titulo
+                  br
+                  span Classificação: 
+                    b #{(r.ranking.somaEstrelas/r.ranking.numVotos).toFixed(1)} / 5 ⭐ 
+                    small (#{r.ranking.numVotos} votos)
+                  span.w3-right.w3-text-grey= r.tipo

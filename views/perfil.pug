@@ -112,6 +112,11 @@ block content
                           span.w3-tag.w3-yellow.w3-round.w3-small ⭐ #{ (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) }
                         else
                           span.w3-small.w3-text-grey Sem votos
+                        
+                        // ZONA DE DOWNLOADS NO PERFIL
+                        br
+                        span.w3-small.w3-text-grey Downloads: 
+                          b= r.downloads || 0
             else
               .w3-panel.w3-pale-blue.w3-round
                 p.w3-text-grey Ainda não carregaste nenhum recurso na plataforma.
