@@ -66,7 +66,14 @@ router.get('/recursos', async (req, res) => {
         let query = {};
         
         if (req.query.search) {
-            query = { titulo: { $regex: req.query.search, $options: 'i' } };
+            const regex = { $regex: req.query.search, $options: 'i' };
+            query = {
+                $or: [
+                    { titulo: regex },
+                    { tipo: regex },
+                    { classificacao: regex }
+                ]
+            };
         }
         
         const recursos = await Recurso.find(query).sort({ dataRegisto: -1 });

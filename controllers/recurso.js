@@ -68,7 +68,7 @@ exports.getRecentes = () => {
 // Retorna os 5 recursos com melhor ranking (baseado na soma de estrelas)
 exports.getTopRated = () => {
     return Recurso.find()
-                  .sort({ "ranking.somaEstrelas": -1 })
+                  .sort({ "ranking.somaEstrelas": -1, "ranking.numVotos": -1 })
                   .limit(5);
 };
 

@@ -4,38 +4,48 @@ block content
   .w3-container.w3-margin-top
     
     .w3-row-padding.w3-margin-top
-      // Coluna dos Recentes
       .w3-half
         .w3-card-4
           header.w3-container.w3-blue
             h3 🕒 Novas adições! 🕒
           .w3-container.w3-padding
-            if recentes.length > 0
+            if recentes && recentes.length > 0
               ul.w3-ul.w3-hoverable
                 each r in recentes
                   li.w3-padding-16
                     span.w3-large
-                      a(href="/recursos/" + r._id)= r.titulo
+                      a(href="/recursos/" + r._id).w3-text-blue(style="text-decoration:none")= r.titulo
                     br
                     span Adicionado por: 
                       b= r.produtor
-                    span.w3-right.w3-tag.w3-small.w3-round= r.dataRegisto.toString().split('T')[0]
+                    span.w3-right.w3-tag.w3-small.w3-round.w3-light-grey
+                      = r.dataRegisto.toISOString().split('T')[0]
             else
-              p.w3-padding Nenhum recurso novo esta semana.
+              .w3-panel.w3-pale-blue.w3-leftbar.w3-border-blue
+                p.w3-padding Nenhum recurso novo foi adicionado esta semana.
 
-      // Coluna do Ranking
+      // Coluna do Ranking (Top 5)
       .w3-half
         .w3-card-4
           header.w3-container.w3-amber
-            h3.w3-text-white ⭐ Melhores Classificados (Top 5)
+            h3.w3-text-white ⭐ Melhores Classificados
           .w3-container.w3-padding
-            ul.w3-ul.w3-hoverable
-              each r in top
-                li.w3-padding-16
-                  span.w3-large
-                    a(href="/recursos/" + r._id)= r.titulo
-                  br
-                  span Classificação: 
-                    b #{(r.ranking.somaEstrelas/r.ranking.numVotos).toFixed(1)} / 5 ⭐ 
-                    small (#{r.ranking.numVotos} votos)
-                  span.w3-right.w3-text-grey= r.tipo
+            if top && top.length > 0
+              ul.w3-ul.w3-hoverable
+                each r in top
+                  li.w3-padding-16
+                    span.w3-large
+                      a(href="/recursos/" + r._id).w3-text-amber(style="text-decoration:none")= r.titulo
+                    br
+                    span Classificação: 
+                      - var media = r.ranking.numVotos > 0 ? (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) : "0.0"
+                      b #{media} / 5 ⭐ 
+                      small.w3-text-grey  (#{r.ranking.numVotos} votos)
+                    span.w3-right.w3-tag.w3-round.w3-small.w3-pale-amber= r.tipo
+            else
+              .w3-panel.w3-pale-yellow.w3-leftbar.w3-border-amber
+                p.w3-padding Ainda não existem recursos classificados no sistema.
+
+    if user && user.nivel !== 'consumidor'
+      .w3-container.w3-center.w3-margin-top
+        a.w3-button.w3-teal.w3-round-large(href="/upload") 📤 Partilhar Novo Recurso

@@ -110,20 +110,6 @@ router.get('/feed', auth.verificaAcesso, async (req, res) => {
     }
 });
 
-router.get('/recursos/:id/download', auth.verificaAcesso, async (req, res) => {
-    try {
-        // Incrementa o contador na API
-        await axios.post(`${apiURL}/recursos/${req.params.id}/download`);
-        
-        // Mantém a tua lógica atual de download (exemplo genérico abaixo)
-        const response = await axios.get(`${apiURL}/recursos/${req.params.id}`);
-        const recurso = response.data;
-        res.download(recurso.caminhoFicheiro + ".zip"); // Ajusta conforme a tua lógica de ficheiros
-    } catch (e) {
-        res.render('error', { error: e });
-    }
-});
-
 router.post('/recursos/:id/posts', auth.verificaAcesso, (req, res) => {
     const postData = { titulo: req.body.titulo, conteudo: req.body.conteudo, autor: req.user.nome };
     axios.post(`${apiURL}/recursos/${req.params.id}/posts`, postData).then(() => 
