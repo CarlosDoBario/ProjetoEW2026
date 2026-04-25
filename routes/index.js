@@ -61,30 +61,20 @@ router.get('/recursos', auth.verificaAcesso, (req, res) => {
 
 router.get('/recursos/:id/download', auth.verificaAcesso, async (req, res) => {
     try {
-        // 1. Incrementa o contador na API
         await axios.post(`${apiURL}/recursos/${req.params.id}/download`);
-        
-        // 2. Vai buscar a informação do recurso à API
         const response = await axios.get(`${apiURL}/recursos/${req.params.id}`);
         const recurso = response.data;
         
-        // 3. Pega na pasta do AIP e transforma novamente num ZIP (DIP)
         const zip = new AdmZip();
         zip.addLocalFolder(recurso.caminhoFicheiro);
-        
-        // 4. Gera um buffer do ZIP para ser enviado na resposta HTTP
         const zipBuffer = zip.toBuffer();
-        
-        // 5. Cria um nome simpático para o download (ex: tira espaços do título)
         const nomeFicheiro = recurso.titulo.replace(/\s+/g, '_') + "_EngWeb.zip";
         
-        // 6. Define os cabeçalhos para forçar o download e envia o buffer
         res.set('Content-Type', 'application/zip');
         res.set('Content-Disposition', `attachment; filename="${nomeFicheiro}"`);
         res.send(zipBuffer);
-
     } catch (e) {
-        console.log(e); // Útil para veres no terminal caso falhe algo mais
+        console.log(e);
         res.render('error', { message: "Erro ao processar o download do ficheiro.", error: e });
     }
 });
@@ -100,11 +90,7 @@ router.get('/feed', auth.verificaAcesso, async (req, res) => {
             axios.get(`${apiURL}/recursos/top`)
         ]);
         
-        res.render('feed', { 
-            recentes: recentesRes.data, 
-            top: topRes.data, 
-            user: req.user 
-        });
+        res.render('feed', { recentes: recentesRes.data, top: topRes.data, user: req.user });
     } catch (e) {
         res.render('error', { error: e });
     }
@@ -123,26 +109,20 @@ router.post('/recursos/:id/avaliar', auth.verificaAcesso, (req, res) => {
 
 router.post('/posts/:id/apagar', auth.verificaAcesso, (req, res) => {
     const recursoId = req.body.recursoId;
-    axios.delete(`${apiURL}/posts/${req.params.id}`, {
-        headers: { Authorization: `Bearer ${req.cookies.token}` }
-    })
+    axios.delete(`${apiURL}/posts/${req.params.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
     .then(() => res.redirect('/recursos/' + recursoId))
     .catch(e => {
-        if (e.response && e.response.status === 403)
-            return res.render('error', { message: "Não tens permissão para apagar este post." });
+        if (e.response && e.response.status === 403) return res.render('error', { message: "Não tens permissão para apagar este post." });
         res.render('error', { error: e });
     });
 });
 
 router.post('/posts/:postId/comentarios/:comentarioId/apagar', auth.verificaAcesso, (req, res) => {
     const recursoId = req.body.recursoId;
-    axios.delete(`${apiURL}/posts/${req.params.postId}/comentarios/${req.params.comentarioId}`, {
-        headers: { Authorization: `Bearer ${req.cookies.token}` }
-    })
+    axios.delete(`${apiURL}/posts/${req.params.postId}/comentarios/${req.params.comentarioId}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
     .then(() => res.redirect('/recursos/' + recursoId))
     .catch(e => {
-        if (e.response && e.response.status === 403)
-            return res.render('error', { message: "Não tens permissão para apagar este comentário." });
+        if (e.response && e.response.status === 403) return res.render('error', { message: "Não tens permissão para apagar este comentário." });
         res.render('error', { error: e });
     });
 });
@@ -172,28 +152,70 @@ router.post('/upload', auth.verificaAcesso, upload.single('recursoZip'), (req, r
 router.get('/admin', auth.verificaAcesso, async (req, res) => {
     if (req.user.nivel !== 'administrador') return res.render('error', { message: "Acesso Negado. Esta área é apenas para administradores." });
     try {
-        const usersRes = await axios.get(`${apiURL}/usuarios`, {
-            headers: { Authorization: `Bearer ${req.cookies.token}` }
-        });
+        const usersRes = await axios.get(`${apiURL}/usuarios`, { headers: { Authorization: `Bearer ${req.cookies.token}` } });
         res.render('admin', { user: req.user, usuarios: usersRes.data });
     } catch (e) { res.render('error', { error: e }); }
 });
 
 router.post('/admin/usuarios/:id/nivel', auth.verificaAcesso, (req, res) => {
     if (req.user.nivel !== 'administrador') return res.render('error', { message: "Sem permissão." });
-    axios.patch(`${apiURL}/usuarios/${req.params.id}/nivel`, { nivel: req.body.nivel }, {
-        headers: { Authorization: `Bearer ${req.cookies.token}` }
-    })
+    axios.patch(`${apiURL}/usuarios/${req.params.id}/nivel`, { nivel: req.body.nivel }, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
     .then(() => res.redirect('/admin'))
     .catch(e => res.render('error', { error: e }));
 });
 
 router.post('/admin/usuarios/:id/apagar', auth.verificaAcesso, (req, res) => {
     if (req.user.nivel !== 'administrador') return res.render('error', { message: "Sem permissão." });
-    axios.delete(`${apiURL}/usuarios/${req.params.id}`, {
-        headers: { Authorization: `Bearer ${req.cookies.token}` }
-    })
+    axios.delete(`${apiURL}/usuarios/${req.params.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
     .then(() => res.redirect('/admin'))
+    .catch(e => res.render('error', { error: e }));
+});
+
+router.get('/perfil/editar', auth.verificaAcesso, (req, res) => {
+    axios.get(`${apiURL}/usuarios/${req.user.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
+    .then(dados => res.render('edit_perfil', { user: dados.data , isAdminEdit: false}))
+    .catch(e => res.render('error', { error: e }));
+});
+
+router.post('/perfil/editar', auth.verificaAcesso, (req, res) => {
+    axios.put(`${apiURL}/usuarios/${req.user.id}`, req.body, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
+    .then(() => res.redirect('/perfil'))
+    .catch(e => res.render('error', { error: e }));
+});
+
+router.get('/recursos/editar/:id', auth.verificaAcesso, (req, res) => {
+    axios.get(`${apiURL}/recursos/${req.params.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
+    .then(dados => res.render('edit_recurso', { r: dados.data }))
+    .catch(e => res.render('error', { error: e }));
+});
+
+router.post('/recursos/editar/:id', auth.verificaAcesso, (req, res) => {
+    axios.put(`${apiURL}/recursos/${req.params.id}`, req.body, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
+    .then(() => res.redirect(`/recursos/${req.params.id}`))
+    .catch(e => res.render('error', { error: e }));
+});
+
+// Página de edição para o Admin (carrega os dados do utilizador com ID :id)
+router.get('/admin/usuarios/:id/editar', auth.verificaAcesso, async (req, res) => {
+    // Verifica se é administrador
+    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Acesso Negado." });
+
+    try {
+        const dados = await axios.get(`${apiURL}/usuarios/${req.params.id}`, { 
+            headers: { Authorization: `Bearer ${req.cookies.token}` } 
+        });
+        res.render('edit_perfil', { user: dados.data, isAdminEdit: true });
+    } catch (e) { res.render('error', { error: e }); }
+});
+
+// Guardar edições feitas pelo Admin
+router.post('/admin/usuarios/:id/editar', auth.verificaAcesso, (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Acesso Negado." });
+    
+    axios.put(`${apiURL}/usuarios/${req.params.id}`, req.body, { 
+        headers: { Authorization: `Bearer ${req.cookies.token}` } 
+    })
+    .then(() => res.redirect('/admin')) 
     .catch(e => res.render('error', { error: e }));
 });
 

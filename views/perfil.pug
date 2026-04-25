@@ -44,6 +44,11 @@ block content
               b Membro desde:
               br
               span.w3-text-grey= perfil.dataRegisto ? perfil.dataRegisto.substring(0, 10) : 'N/A'
+            
+            // NOVOS BOTÕES ADICIONADOS AQUI
+            hr
+            a.w3-button.w3-blue.w3-round.w3-margin-right.w3-small(href="/perfil/editar") ✏️ Editar Perfil
+            a.w3-button.w3-red.w3-round.w3-small(href="/logout") 🚪 Sair
 
         .w3-card-4
           header.w3-container.w3-dark-grey

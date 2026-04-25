@@ -16,6 +16,7 @@ block content
               th Filiação
               th Nível Atual
               th Mudar Permissão
+              th Editar
               th Ações
           tbody
             each u in usuarios
@@ -33,6 +34,9 @@ block content
                       option(value="produtor" selected=(u.nivel === 'produtor')) Produtor
                       option(value="administrador" selected=(u.nivel === 'administrador')) Administrador
                     button.w3-button.w3-small.w3-blue.w3-round(type="submit") Alterar
+                td
+                  // Botão de Editar
+                  a.w3-button.w3-small.w3-amber.w3-round(href="/admin/usuarios/" + u._id + "/editar") ✏️ Editar
                 td
                   if u._id.toString() !== user.id.toString()
                     form(method="POST" action="/admin/usuarios/" + u._id + "/apagar")

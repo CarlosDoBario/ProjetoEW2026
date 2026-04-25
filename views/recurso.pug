@@ -44,6 +44,11 @@ block content
         
         .w3-margin-top.w3-margin-bottom
           a.w3-button.w3-blue.w3-round(href="/recursos/" + recurso._id + "/download") ⬇ Descarregar (ZIP)
+          
+          // LÓGICA DO BOTÃO DE EDIÇÃO ADICIONADA AQUI
+          if user && (user.nome === recurso.produtor || user.nivel === 'administrador')
+            a.w3-button.w3-orange.w3-text-white.w3-round.w3-margin-left(href="/recursos/editar/" + recurso._id) ✏️ Editar Metadados
+          
           span.w3-margin-left
             b Nº de Downloads: 
             | #{recurso.downloads || 0}

@@ -215,4 +215,48 @@ router.delete('/usuarios/:id', verificaToken, async (req, res) => {
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
+router.put('/usuarios/:id', verificaToken, async (req, res) => {
+    try {
+        
+        const ehProprioUtilizador = (req.user.id === req.params.id);
+        const ehAdmin = (req.user.nivel === 'administrador');
+
+        if (!ehProprioUtilizador && !ehAdmin) {
+            return res.status(403).json({ erro: "Acesso negado." });
+        }
+
+        let updateData = { ...req.body };
+
+        if (ehAdmin && !ehProprioUtilizador) {
+            delete updateData.password;
+            delete updateData.email;
+            
+            delete updateData.nivel; 
+        }
+
+        const user = await User.atualizar(req.params.id, updateData);
+        
+        if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
+        
+        res.json(user);
+    } catch (err) { 
+        res.status(500).json({ erro: err.message }); 
+    }
+});
+
+router.put('/recursos/:id', verificaToken, async (req, res) => {
+    try {
+        const recurso = await RecursoController.findById(req.params.id);
+        if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado." });
+
+        if (recurso.produtor !== req.user.nome && req.user.nivel !== 'administrador') {
+            return res.status(403).json({ erro: "Acesso negado." });
+        }
+
+        const atualizado = await RecursoController.update(req.params.id, req.body);
+        res.json(atualizado);
+    } catch (err) { 
+        res.status(500).json({ erro: err.message }); }
+});
+
 module.exports = router;

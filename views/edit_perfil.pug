@@ -1,0 +1,28 @@
+extends layout
+
+block content
+  .w3-container.w3-margin-top
+    .w3-card-4
+      header.w3-container.w3-teal
+        h2 Editar Perfil
+      
+      .w3-container.w3-padding-16
+        // Lógica para decidir para onde enviar o formulário
+        - const actionUrl = (isEditAdmin) ? "/admin/usuarios/" + user._id + "/editar" : "/perfil/editar"
+        
+        form.w3-container(method="POST" action=actionUrl)
+          label.w3-text-teal Nome
+          input.w3-input.w3-border(type="text" name="nome" value=user.nome required)
+          
+          label.w3-text-teal Filiação
+          input.w3-input.w3-border(type="text" name="filiacao" value=user.filiacao || '')
+          
+          label.w3-text-teal Bio
+          textarea.w3-input.w3-border(name="bio")= user.bio || ''
+          
+          br
+          button.w3-button.w3-teal.w3-round(type="submit") Guardar Alterações
+          a.w3-button.w3-grey.w3-round.w3-margin-left(href="/perfil") Cancelar
+
+    .w3-container.w3-margin-top
+      a.w3-button.w3-teal(href="/recursos") Voltar aos Recursos
