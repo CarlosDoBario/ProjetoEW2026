@@ -5,6 +5,7 @@ const AdmZip = require('adm-zip');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const Recurso = require('../models/recurso');
 const Post = require('../models/post');
@@ -41,8 +42,13 @@ router.patch('/usuarios/:id/password', async (req, res) => {
     try {
         const user = await User.consultar(req.params.id);
         if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
-        if (user.password !== req.body.passwordAtual)
+
+        // Compara a password atual (texto limpo) com o hash na DB
+        const passwordValida = bcrypt.compareSync(req.body.passwordAtual, user.password);
+        
+        if (!passwordValida)
             return res.status(403).json({ erro: "Password atual incorreta." });
+
         await User.atualizar(req.params.id, { password: req.body.passwordNova });
         res.json({ mensagem: "Password atualizada com sucesso." });
     } catch (err) { res.status(500).json({ erro: err.message }); }
@@ -50,15 +56,24 @@ router.patch('/usuarios/:id/password', async (req, res) => {
 
 router.post('/usuarios/login', (req, res) => {
     User.consultarPorEmail(req.body.email).then(dados => {
-        if (dados && dados.password === req.body.password) {
-            const token = jwt.sign({ nome: dados.nome, nivel: dados.nivel, email: dados.email, id: dados._id }, secret, { expiresIn: '1h' });
+        // Verifica se o user existe e se a password bate com o hash
+        if (dados && bcrypt.compareSync(req.body.password, dados.password)) {
+            const token = jwt.sign(
+                { nome: dados.nome, nivel: dados.nivel, email: dados.email, id: dados._id }, 
+                secret, 
+                { expiresIn: '1h' }
+            );
             res.status(200).json({ token: token });
-        } else { res.status(401).json({ mensagem: "Credenciais inválidas" }); }
+        } else { 
+            res.status(401).json({ mensagem: "Credenciais inválidas" }); 
+        }
     }).catch(e => res.status(500).json({ erro: e.message }));
 });
 
 router.post('/usuarios/registo', (req, res) => {
-    User.inserir(req.body).then(dados => res.status(201).json(dados)).catch(e => res.status(500).json({ erro: e.message }));
+    User.inserir(req.body)
+        .then(dados => res.status(201).json(dados))
+        .catch(e => res.status(500).json({ erro: e.message }));
 });
 
 router.get('/recursos', async (req, res) => {
@@ -84,14 +99,12 @@ router.get('/recursos', async (req, res) => {
 router.post('/recursos', upload.single('recursoZip'), RecursoController.ingest);
 
 router.get('/recursos/recentes', (req, res) => {
-    // Atenção: Usar RecursoController e não Recurso
     RecursoController.getRecentes()
         .then(dados => res.json(dados))
         .catch(erro => res.status(500).json(erro));
 });
 
 router.get('/recursos/top', (req, res) => {
-    // Atenção: Usar RecursoController e não Recurso
     RecursoController.getTopRated()
         .then(dados => res.json(dados))
         .catch(erro => res.status(500).json(erro));

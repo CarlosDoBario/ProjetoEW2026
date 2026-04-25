@@ -1,35 +1,38 @@
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 
-// Listar todos os utilizadores 
-module.exports.listar = () => {
-    return User.find()
-               .sort({ nome: 1 })
-               .exec();
+// Listar todos os utilizadores
+exports.listar = () => {
+    return User.find().sort({ nome: 1 });
 };
 
-// Consultar utilizador por ID
-module.exports.consultar = (id) => {
-    return User.findById(id).exec();
+// Consultar um utilizador por ID
+exports.consultar = id => {
+    return User.findById(id);
 };
 
-// Consultar utilizador por Email
-module.exports.consultarPorEmail = (email) => {
-    return User.findOne({ email: email }).exec();
+// Consultar por email (usado no login)
+exports.consultarPorEmail = email => {
+    return User.findOne({ email: email });
 };
 
-// Inserir utilizador
-module.exports.inserir = (dados) => {
-    const novo = new User(dados);
-    return novo.save();
+// Inserir um novo utilizador com Password Hashing
+exports.inserir = u => {
+    const salt = bcrypt.genSaltSync(10);
+    u.password = bcrypt.hashSync(u.password, salt);
+    return User.create(u);
 };
 
-// Atualizar dados de um utilizador 
-module.exports.atualizar = (id, dados) => {
-    return User.findByIdAndUpdate(id, dados, { new: true }).exec();
+// Atualizar utilizador (incluindo tratamento de password se necessário)
+exports.atualizar = (id, data) => {
+    if (data.password) {
+        const salt = bcrypt.genSaltSync(10);
+        data.password = bcrypt.hashSync(data.password, salt);
+    }
+    return User.findByIdAndUpdate(id, data, { new: true });
 };
 
-// Eliminar um utilizador
-module.exports.eliminar = (id) => {
-    return User.findByIdAndDelete(id).exec();
+// Eliminar utilizador
+exports.eliminar = id => {
+    return User.findByIdAndDelete(id);
 };
-
