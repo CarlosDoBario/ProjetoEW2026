@@ -50,6 +50,19 @@ block content
             | #{recurso.downloads || 0}
         
         hr
+        h4.w3-text-teal 📂 Conteúdo do Pacote (AIP)
+        .w3-container.w3-border.w3-light-grey.w3-padding.w3-round
+          if recurso.conteudo && recurso.conteudo.length > 0
+            ul.w3-ul
+              each f in recurso.conteudo
+                li.w3-padding-small
+                  span.w3-margin-right 📄
+                  span= f
+                  a.w3-button.w3-tiny.w3-blue.w3-right(href="/recursos/" + recurso._id + "/ficheiro/" + f) ⬇ Download
+          else
+            p.w3-text-red Nenhuns ficheiros encontrados na pasta do recurso.
+
+        hr
         h4.w3-text-teal Secção Social (Discussão)
         
         .w3-card-2.w3-padding.w3-light-grey.w3-round

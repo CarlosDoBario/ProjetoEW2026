@@ -117,9 +117,23 @@ router.post('/recursos/:id/download', (req, res) => {
 router.get('/recursos/:id', async (req, res) => {
     try {
         const recurso = await Recurso.findById(req.params.id);
+        if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado" });
+
         const posts = await Post.find({ recursoId: req.params.id }).sort({ createdAt: -1 });
-        res.json({ ...recurso._doc, posts: posts });
-    } catch (err) { res.status(500).json({ erro: err.message }); }
+        
+        let ficheiros = [];
+        if (recurso.caminhoFicheiro && fs.existsSync(recurso.caminhoFicheiro)) {
+            ficheiros = fs.readdirSync(recurso.caminhoFicheiro);
+        }
+
+        res.json({ 
+            ...recurso._doc, 
+            posts: posts, 
+            conteudo: ficheiros 
+        });
+    } catch (err) { 
+        res.status(500).json({ erro: err.message }); 
+    }
 });
 
 router.delete('/recursos/:id', async (req, res) => {

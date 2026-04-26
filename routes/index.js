@@ -6,6 +6,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const auth = require('../auth/auth'); 
 const AdmZip = require('adm-zip');
+const path = require('path');
 
 const upload = multer({ dest: 'uploads/sips/' });
 const apiURL = "http://localhost:7777/api";
@@ -176,6 +177,18 @@ router.post('/admin/usuarios/:id/nivel', auth.verificaAcesso, (req, res) => {
 router.post('/admin/usuarios/:id/apagar', auth.verificaAcesso, (req, res) => {
     axios.delete(`${apiURL}/usuarios/${req.params.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
     .then(() => res.redirect('/admin')).catch(e => res.render('error', { error: e }));
+});
+
+router.get('/recursos/:id/ficheiro/:nome', auth.verificaAcesso, async (req, res) => {
+    try {
+        const response = await axios.get(`${apiURL}/recursos/${req.params.id}`);
+        const recurso = response.data;
+        const caminhoCompleto = path.join(recurso.caminhoFicheiro, req.params.nome);
+        
+        res.download(caminhoCompleto); 
+    } catch (e) { 
+        res.render('error', { error: e }); 
+    }
 });
 
 router.get('/', (req, res) => res.redirect('/recursos'));
