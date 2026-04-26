@@ -19,15 +19,19 @@ const upload = multer({ dest: 'uploads/sips/' });
 function verificaToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (!token) return res.status(401).json({ erro: "Token em falta." });
-
     jwt.verify(token, secret, (err, user) => {
         if (err) return res.status(403).json({ erro: "Token inválido ou expirado." });
         req.user = user; 
         next();
     });
 }
+
+// --- UTILIZADORES ---
+router.get('/usuarios', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    try { const users = await User.listar(); res.json(users); } catch (err) { res.status(500).json({ erro: err.message }); }
+});
 
 router.get('/usuarios/:id', async (req, res) => {
     try {
@@ -38,59 +42,59 @@ router.get('/usuarios/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
-router.patch('/usuarios/:id/password', async (req, res) => {
-    try {
-        const user = await User.consultar(req.params.id);
-        if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
-
-        // Compara a password atual (texto limpo) com o hash na DB
-        const passwordValida = bcrypt.compareSync(req.body.passwordAtual, user.password);
-        
-        if (!passwordValida)
-            return res.status(403).json({ erro: "Password atual incorreta." });
-
-        await User.atualizar(req.params.id, { password: req.body.passwordNova });
-        res.json({ mensagem: "Password atualizada com sucesso." });
-    } catch (err) { res.status(500).json({ erro: err.message }); }
-});
-
 router.post('/usuarios/login', (req, res) => {
     User.consultarPorEmail(req.body.email).then(dados => {
-        // Verifica se o user existe e se a password bate com o hash
         if (dados && bcrypt.compareSync(req.body.password, dados.password)) {
-            const token = jwt.sign(
-                { nome: dados.nome, nivel: dados.nivel, email: dados.email, id: dados._id }, 
-                secret, 
-                { expiresIn: '1h' }
-            );
+            const token = jwt.sign({ nome: dados.nome, nivel: dados.nivel, email: dados.email, id: dados._id }, secret, { expiresIn: '1h' });
             res.status(200).json({ token: token });
-        } else { 
-            res.status(401).json({ mensagem: "Credenciais inválidas" }); 
-        }
+        } else { res.status(401).json({ mensagem: "Credenciais inválidas" }); }
     }).catch(e => res.status(500).json({ erro: e.message }));
 });
 
 router.post('/usuarios/registo', (req, res) => {
-    User.inserir(req.body)
-        .then(dados => res.status(201).json(dados))
-        .catch(e => res.status(500).json({ erro: e.message }));
+    User.inserir(req.body).then(dados => res.status(201).json(dados)).catch(e => res.status(500).json({ erro: e.message }));
 });
 
+router.patch('/usuarios/:id/password', async (req, res) => {
+    try {
+        const user = await User.consultar(req.params.id);
+        if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
+        if (!bcrypt.compareSync(req.body.passwordAtual, user.password)) return res.status(403).json({ erro: "Password atual incorreta." });
+        await User.atualizar(req.params.id, { password: req.body.passwordNova });
+        res.json({ mensagem: "Password atualizada." });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.patch('/usuarios/:id/nivel', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    try { await User.atualizar(req.params.id, { nivel: req.body.nivel }); res.json({ mensagem: "Nível atualizado." }); } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.delete('/usuarios/:id', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    try { await User.eliminar(req.params.id); res.json({ mensagem: "Removido." }); } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+router.put('/usuarios/:id', verificaToken, async (req, res) => {
+    try {
+        const ehProprio = (req.user.id === req.params.id);
+        const ehAdmin = (req.user.nivel === 'administrador');
+        if (!ehProprio && !ehAdmin) return res.status(403).json({ erro: "Acesso negado." });
+        let updateData = { ...req.body };
+        if (ehAdmin && !ehProprio) { delete updateData.password; delete updateData.email; delete updateData.nivel; }
+        const user = await User.atualizar(req.params.id, updateData);
+        res.json(user);
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+// --- RECURSOS ---
 router.get('/recursos', async (req, res) => {
     try {
         let query = {};
-        
         if (req.query.search) {
             const regex = { $regex: req.query.search, $options: 'i' };
-            query = {
-                $or: [
-                    { titulo: regex },
-                    { tipo: regex },
-                    { classificacao: regex }
-                ]
-            };
+            query = { $or: [{ titulo: regex }, { tipo: regex }, { classificacao: regex }] };
         }
-        
         const recursos = await Recurso.find(query).sort({ dataRegisto: -1 });
         res.json(recursos);
     } catch (err) { res.status(500).json({ erro: err.message }); }
@@ -99,21 +103,15 @@ router.get('/recursos', async (req, res) => {
 router.post('/recursos', upload.single('recursoZip'), RecursoController.ingest);
 
 router.get('/recursos/recentes', (req, res) => {
-    RecursoController.getRecentes()
-        .then(dados => res.json(dados))
-        .catch(erro => res.status(500).json(erro));
+    RecursoController.getRecentes().then(dados => res.json(dados)).catch(erro => res.status(500).json(erro));
 });
 
 router.get('/recursos/top', (req, res) => {
-    RecursoController.getTopRated()
-        .then(dados => res.json(dados))
-        .catch(erro => res.status(500).json(erro));
+    RecursoController.getTopRated().then(dados => res.json(dados)).catch(erro => res.status(500).json(erro));
 });
 
 router.post('/recursos/:id/download', (req, res) => {
-    RecursoController.incrementarDownloads(req.params.id)
-        .then(dados => res.json(dados))
-        .catch(erro => res.status(500).json(erro));
+    RecursoController.incrementarDownloads(req.params.id).then(dados => res.json(dados)).catch(erro => res.status(500).json(erro));
 });
 
 router.get('/recursos/:id', async (req, res) => {
@@ -129,60 +127,35 @@ router.delete('/recursos/:id', async (req, res) => {
         const recurso = await Recurso.findById(req.params.id);
         if (recurso && recurso.caminhoFicheiro) fs.rmSync(recurso.caminhoFicheiro, { recursive: true, force: true });
         await Recurso.findByIdAndDelete(req.params.id);
-        res.json({ mensagem: 'Recurso eliminado.' });
+        res.json({ mensagem: 'Eliminado.' });
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
-router.get('/recursos/:id/download', async (req, res) => {
+router.put('/recursos/:id', verificaToken, async (req, res) => {
     try {
         const recurso = await Recurso.findById(req.params.id);
-        const zip = new AdmZip();
-        zip.addLocalFolder(recurso.caminhoFicheiro);
-        res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', `attachment; filename="${recurso.titulo.replace(/\s/g, '_')}.zip"`);
-        res.send(zip.toBuffer());
+        if (recurso.produtor !== req.user.nome && req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Negado." });
+        const atualizado = await RecursoController.update(req.params.id, req.body);
+        res.json(atualizado);
     } catch (err) { res.status(500).json({ erro: err.message }); }
-});
-
-router.post('/recursos/:id/posts', (req, res) => {
-    const novoPost = new Post({ recursoId: req.params.id, autor: req.body.autor, titulo: req.body.titulo, conteudo: req.body.conteudo });
-    novoPost.save().then(dados => res.status(201).json(dados)).catch(err => res.status(500).json({ erro: err.message }));
 });
 
 router.post('/recursos/:id/avaliar', (req, res) => {
     RecursoController.avaliar(req.params.id, parseInt(req.body.nota)).then(dados => res.json(dados)).catch(err => res.status(500).json({ erro: err.message }));
 });
 
+// --- POSTS E COMENTÁRIOS ---
+router.post('/recursos/:id/posts', (req, res) => {
+    const novoPost = new Post({ recursoId: req.params.id, autor: req.body.autor, titulo: req.body.titulo, conteudo: req.body.conteudo });
+    novoPost.save().then(dados => res.status(201).json(dados)).catch(err => res.status(500).json({ erro: err.message }));
+});
+
 router.delete('/posts/:id', verificaToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
-        if (!post) return res.status(404).json({ erro: "Post não encontrado." });
-
-        if (post.autor !== req.user.nome && req.user.nivel !== 'administrador') {
-            return res.status(403).json({ erro: "Não tens permissão para apagar este post." });
-        }
-
+        if (post.autor !== req.user.nome && req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Negado." });
         await Post.findByIdAndDelete(req.params.id);
-        res.json({ mensagem: "Post apagado com sucesso." });
-    } catch (err) { res.status(500).json({ erro: err.message }); }
-});
-
-router.delete('/posts/:postId/comentarios/:comentarioId', verificaToken, async (req, res) => {
-    try {
-        const post = await Post.findById(req.params.postId);
-        if (!post) return res.status(404).json({ erro: "Post não encontrado." });
-
-        const comentario = post.comentarios.id(req.params.comentarioId);
-        if (!comentario) return res.status(404).json({ erro: "Comentário não encontrado." });
-
-        if (comentario.autor !== req.user.nome && req.user.nivel !== 'administrador') {
-            return res.status(403).json({ erro: "Não tens permissão para apagar este comentário." });
-        }
-
-        await Post.findByIdAndUpdate(req.params.postId, {
-            $pull: { comentarios: { _id: req.params.comentarioId } }
-        });
-        res.json({ mensagem: "Comentário apagado com sucesso." });
+        res.json({ mensagem: "Apagado." });
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
@@ -191,72 +164,25 @@ router.post('/posts/:id/comentarios', (req, res) => {
     PostController.adicionarComentario(req.params.id, novoComentario).then(dados => res.status(201).json(dados)).catch(err => res.status(500).json({ erro: err.message }));
 });
 
-router.get('/usuarios', verificaToken, async (req, res) => {
-    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+router.put('/posts/:postId/comentarios/:comentarioId', verificaToken, async (req, res) => {
     try {
-        const users = await User.listar(); 
-        res.json(users);
+        const post = await Post.findById(req.params.postId);
+        const comentario = post.comentarios.id(req.params.comentarioId);
+        if (comentario.autor !== req.user.nome) return res.status(403).json({ erro: "Apenas autor." });
+        comentario.conteudo = req.body.conteudo;
+        await post.save();
+        res.json(comentario);
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
-router.patch('/usuarios/:id/nivel', verificaToken, async (req, res) => {
-    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+router.delete('/posts/:postId/comentarios/:comentarioId', verificaToken, async (req, res) => {
     try {
-        await User.atualizar(req.params.id, { nivel: req.body.nivel });
-        res.json({ mensagem: "Nível atualizado com sucesso." });
+        const post = await Post.findById(req.params.postId);
+        const comentario = post.comentarios.id(req.params.comentarioId);
+        if (comentario.autor !== req.user.nome && req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Negado." });
+        await Post.findByIdAndUpdate(req.params.postId, { $pull: { comentarios: { _id: req.params.comentarioId } } });
+        res.json({ mensagem: "Apagado." });
     } catch (err) { res.status(500).json({ erro: err.message }); }
-});
-
-router.delete('/usuarios/:id', verificaToken, async (req, res) => {
-    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
-    try {
-        await User.eliminar(req.params.id); 
-        res.json({ mensagem: "Utilizador removido com sucesso." });
-    } catch (err) { res.status(500).json({ erro: err.message }); }
-});
-
-router.put('/usuarios/:id', verificaToken, async (req, res) => {
-    try {
-        
-        const ehProprioUtilizador = (req.user.id === req.params.id);
-        const ehAdmin = (req.user.nivel === 'administrador');
-
-        if (!ehProprioUtilizador && !ehAdmin) {
-            return res.status(403).json({ erro: "Acesso negado." });
-        }
-
-        let updateData = { ...req.body };
-
-        if (ehAdmin && !ehProprioUtilizador) {
-            delete updateData.password;
-            delete updateData.email;
-            
-            delete updateData.nivel; 
-        }
-
-        const user = await User.atualizar(req.params.id, updateData);
-        
-        if (!user) return res.status(404).json({ erro: "Utilizador não encontrado." });
-        
-        res.json(user);
-    } catch (err) { 
-        res.status(500).json({ erro: err.message }); 
-    }
-});
-
-router.put('/recursos/:id', verificaToken, async (req, res) => {
-    try {
-        const recurso = await RecursoController.findById(req.params.id);
-        if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado." });
-
-        if (recurso.produtor !== req.user.nome && req.user.nivel !== 'administrador') {
-            return res.status(403).json({ erro: "Acesso negado." });
-        }
-
-        const atualizado = await RecursoController.update(req.params.id, req.body);
-        res.json(atualizado);
-    } catch (err) { 
-        res.status(500).json({ erro: err.message }); }
 });
 
 module.exports = router;

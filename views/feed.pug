@@ -4,6 +4,7 @@ block content
   .w3-container.w3-margin-top
     
     .w3-row-padding.w3-margin-top
+      // Coluna das Novas Adições
       .w3-half
         .w3-card-4
           header.w3-container.w3-blue
@@ -19,7 +20,11 @@ block content
                     span Adicionado por: 
                       b= r.produtor
                     span.w3-right.w3-tag.w3-small.w3-round.w3-light-grey
-                      = r.dataRegisto.toISOString().split('T')[0]
+                      // AQUI A CORREÇÃO: Usar substring em vez de toISOString
+                      if r.dataRegisto
+                        = r.dataRegisto.substring(0, 10)
+                      else
+                        | N/A
             else
               .w3-panel.w3-pale-blue.w3-leftbar.w3-border-blue
                 p.w3-padding Nenhum recurso novo foi adicionado esta semana.
@@ -38,9 +43,9 @@ block content
                       a(href="/recursos/" + r._id).w3-text-amber(style="text-decoration:none")= r.titulo
                     br
                     span Classificação: 
-                      - var media = r.ranking.numVotos > 0 ? (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) : "0.0"
+                      - var media = r.ranking && r.ranking.numVotos > 0 ? (r.ranking.somaEstrelas / r.ranking.numVotos).toFixed(1) : "0.0"
                       b #{media} / 5 ⭐ 
-                      small.w3-text-grey  (#{r.ranking.numVotos} votos)
+                      small.w3-text-grey  (#{r.ranking ? r.ranking.numVotos : 0} votos)
                     span.w3-right.w3-tag.w3-round.w3-small.w3-pale-amber= r.tipo
             else
               .w3-panel.w3-pale-yellow.w3-leftbar.w3-border-amber

@@ -41,14 +41,10 @@ block content
                 button.w3-button.w3-blue.w3-margin-left(type="submit") Votar
         
         hr
-        
         .w3-margin-top.w3-margin-bottom
           a.w3-button.w3-blue.w3-round(href="/recursos/" + recurso._id + "/download") ⬇ Descarregar (ZIP)
-          
-          // LÓGICA DO BOTÃO DE EDIÇÃO ADICIONADA AQUI
           if user && (user.nome === recurso.produtor || user.nivel === 'administrador')
             a.w3-button.w3-orange.w3-text-white.w3-round.w3-margin-left(href="/recursos/editar/" + recurso._id) ✏️ Editar Metadados
-          
           span.w3-margin-left
             b Nº de Downloads: 
             | #{recurso.downloads || 0}
@@ -74,14 +70,10 @@ block content
                 .w3-col.s10
                   h6: b= p.titulo
                 .w3-col.s2.w3-right-align
-                  if user && user.nome === p.autor
+                  if user && (user.nome === p.autor || user.nivel === 'administrador')
                     form(method="POST" action="/posts/" + p._id + "/apagar" style="display:inline")
                       input(type="hidden" name="recursoId" value=recurso._id)
-                      button.w3-button.w3-red.w3-round.w3-small(
-                        type="submit"
-                        onclick="return confirm('Tens a certeza que queres apagar este post e todos os seus comentários?')"
-                        title="Apagar post"
-                      ) 🗑 Apagar
+                      button.w3-button.w3-red.w3-round.w3-small(type="submit" onclick="return confirm('Apagar post?')") 🗑
               p.w3-small.w3-text-grey Por: #{p.autor}
               p= p.conteudo
               
@@ -89,17 +81,24 @@ block content
                 h6.w3-small Comentários:
                 if p.comentarios
                   each c in p.comentarios
-                    .w3-row.w3-margin-bottom(style="border-bottom: 1px solid #ddd; padding-bottom: 4px")
-                      .w3-col.s10
+                    .w3-row.w3-margin-bottom(style="border-bottom: 1px solid #ddd; padding-bottom: 8px")
+                      .w3-col.s9
                         p.w3-small(style="margin:0"): b #{c.autor}: 
-                          span(style="font-weight:normal")= " " + c.conteudo
-                      .w3-col.s2.w3-right-align
                         if user && user.nome === c.autor
+                          form(method="POST" action=`/posts/${p._id}/comentarios/${c._id}/editar`)
+                            input(type="hidden" name="recursoId" value=recurso._id)
+                            input.w3-input.w3-border.w3-white(type="text" name="conteudo" value=c.conteudo style="padding:2px; height:24px; font-size:12px")
+                            button.w3-button.w3-tiny.w3-blue.w3-margin-top(type="submit") Guardar
+                        else
+                          span(style="font-weight:normal")= " " + c.conteudo
+                      
+                      .w3-col.s3.w3-right-align
+                        if user && (user.nome === c.autor || user.nivel === 'administrador')
                           form(method="POST" action="/posts/" + p._id + "/comentarios/" + c._id + "/apagar" style="display:inline")
                             input(type="hidden" name="recursoId" value=recurso._id)
-                            button.w3-button.w3-red.w3-round(type="submit" style="padding: 2px 8px; font-size: 11px" onclick="return confirm('Apagar este comentário?')" title="Apagar comentário") 🗑
+                            button.w3-button.w3-red.w3-round(type="submit" style="padding: 2px 8px; font-size: 11px" onclick="return confirm('Apagar?')") 🗑
                 
-                form(method="POST" action="/posts/" + p._id + "/comentarios")
+                form.w3-margin-top(method="POST" action="/posts/" + p._id + "/comentarios")
                   input(type="hidden" name="recursoId" value=recurso._id)
                   input.w3-input.w3-border(type="text" name="conteudo" placeholder="Responder..." required)
                   button.w3-button.w3-teal.w3-small.w3-margin-top(type="submit") Enviar
