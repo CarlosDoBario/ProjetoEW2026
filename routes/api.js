@@ -91,13 +91,30 @@ router.put('/usuarios/:id', verificaToken, async (req, res) => {
 router.get('/recursos', async (req, res) => {
     try {
         let query = {};
+        let sort = { dataRegisto: -1 }; 
+
+        // Filtro por pesquisa (título)
         if (req.query.search) {
-            const regex = { $regex: req.query.search, $options: 'i' };
-            query = { $or: [{ titulo: regex }, { tipo: regex }, { classificacao: regex }] };
+            query.titulo = { $regex: req.query.search, $options: 'i' };
         }
-        const recursos = await Recurso.find(query).sort({ dataRegisto: -1 });
+
+        // Filtro por tipo
+        if (req.query.tipo) {
+            query.tipo = req.query.tipo;
+        }
+
+        // Ordenação
+        if (req.query.sort) {
+            if (req.query.sort === 'data') sort = { dataRegisto: -1 };
+            if (req.query.sort === 'downloads') sort = { downloads: -1 };
+            if (req.query.sort === 'titulo') sort = { titulo: 1 };
+        }
+
+        const recursos = await Recurso.find(query).sort(sort);
         res.json(recursos);
-    } catch (err) { res.status(500).json({ erro: err.message }); }
+    } catch (err) { 
+        res.status(500).json({ erro: err.message }); 
+    }
 });
 
 router.post('/recursos', upload.single('recursoZip'), RecursoController.ingest);

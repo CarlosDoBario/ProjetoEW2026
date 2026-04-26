@@ -8,18 +8,33 @@ block content
         p Consulta e descarrega os materiais partilhados.
       
       .w3-container.w3-padding-16
+        //- Formulário de Filtros e Ordenação Avançada
         form(method="GET" action="/recursos" class="w3-margin-bottom")
           .w3-row-padding
-            .w3-col.m10.s9
+            .w3-col.s4
+              label Pesquisar:
               input.w3-input.w3-border.w3-round(
                 type="text" 
                 name="search" 
-                placeholder="Pesquisar recursos por título..." 
-                value=search
+                placeholder="Título..." 
+                value=(filtros ? filtros.search : '')
               )
-            .w3-col.m2.s3
-              button.w3-button.w3-teal.w3-block.w3-round(type="submit") 🔍 Pesquisar
-              
+            .w3-col.s3
+              label Tipo:
+              select.w3-select.w3-border(name="tipo")
+                option(value="") Todos
+                - var tipos = ['Teste', 'Exame', 'Relatório', 'Trabalho']
+                each t in tipos
+                  option(value=t selected=(filtros && filtros.tipo == t))= t
+            .w3-col.s3
+              label Ordenar por:
+              select.w3-select.w3-border(name="sort")
+                option(value="data" selected=(filtros && filtros.sort == "data")) Data (Recente)
+                option(value="downloads" selected=(filtros && filtros.sort == "downloads")) Downloads
+                option(value="titulo" selected=(filtros && filtros.sort == "titulo")) Título (A-Z)
+            .w3-col.s2.w3-margin-top
+              button.w3-button.w3-teal.w3-block.w3-round(type="submit") 🔍 Filtrar
+            
         if lista && lista.length > 0
           table.w3-table-all.w3-hoverable
             thead
@@ -36,7 +51,7 @@ block content
                   td= r.produtor
                   td
                     span.w3-tag.w3-round(class=(r.visibilidade === 'publico' ? 'w3-green' : 'w3-orange'))= r.visibilidade
-                  td= r.dataRegisto.substring(0, 10)
+                  td= r.dataRegisto ? r.dataRegisto.substring(0, 10) : 'N/A'
         else
           .w3-panel.w3-pale-yellow.w3-border
             p ℹ️ Nenhum recurso encontrado. Tenta outra pesquisa ou faz upload de um novo ficheiro!

@@ -55,8 +55,14 @@ router.post('/perfil/editar', auth.verificaAcesso, (req, res) => {
 
 // --- RECURSOS ---
 router.get('/recursos', auth.verificaAcesso, (req, res) => {
-    axios.get(`${apiURL}/recursos`, { params: { search: req.query.search || '' } })
-        .then(r => res.render('recursos', { lista: r.data, user: req.user, search: req.query.search || '' }))
+    axios.get(`${apiURL}/recursos`, { params: req.query })
+        .then(r => {
+            res.render('recursos', { 
+                lista: r.data, 
+                user: req.user, 
+                filtros: req.query 
+            });
+        })
         .catch(err => res.render('error', { error: err }));
 });
 
