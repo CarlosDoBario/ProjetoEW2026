@@ -4,12 +4,13 @@ const mongoose = require('mongoose');
 const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const createError = require('http-errors');
+const session = require('express-session');
+const flash = require('connect-flash'); 
 
 const indexRouter = require('./routes/index'); 
 const apiRouter = require('./routes/api');
 
 const app = express();
-
 
 const mongoDB = 'mongodb://127.0.0.1/mongoEW';
 mongoose.connect(mongoDB);
@@ -26,6 +27,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser()); 
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(session({
+  secret: 'ProjetoEW2026_Secret_Key',
+  resave: false,
+  saveUninitialized: true
+}));
+app.use(flash());
+
+app.use((req, res, next) => {
+  res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  next();
+});
 
 // Rotas
 app.use('/api', apiRouter); 
