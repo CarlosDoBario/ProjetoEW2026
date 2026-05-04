@@ -117,7 +117,80 @@ router.get('/recursos', async (req, res) => {
     }
 });
 
-router.post('/recursos', upload.single('recursoZip'), RecursoController.ingest);
+router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ erro: "ZIP não recebido." });
+
+        const zip = new AdmZip(req.file.path);
+        const zipEntries = zip.getEntries(); // Obtemos todos os ficheiros do ZIP
+
+        // 1. Procurar por QUALQUER ficheiro .json na raiz
+        // (Filtramos por entradas que não estão em subpastas e terminam em .json)
+        const manifestEntry = zipEntries.find(entry => 
+            !entry.isDirectory && 
+            entry.entryName.split('/').length === 1 && 
+            entry.entryName.toLowerCase().endsWith('.json')
+        );
+
+        // --- ERRO DE EXISTÊNCIA ---
+        if (!manifestEntry) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ 
+                erro: "Erro: Não foi encontrado nenhum ficheiro de configuração (.json) na raiz do ZIP." 
+            });
+        }
+
+        // --- ERRO DE FORMATO (Tipo 2) ---
+        let manifest;
+        try {
+            const content = manifestEntry.getData().toString('utf8');
+            manifest = JSON.parse(content);
+        } catch (e) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ 
+                erro: `Erro de formato: O ficheiro '${manifestEntry.entryName}' contém erros de sintaxe (JSON inválido).` 
+            });
+        }
+
+        // --- ERRO DE CONTEÚDO (Tipo 3) ---
+        const campos = ['titulo', 'tipo', 'dataCriacao'];
+        const emFalta = campos.filter(c => !manifest[c]);
+        
+        if (emFalta.length > 0) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ 
+                erro: `Erro de conteúdo em '${manifestEntry.entryName}': Faltam os campos obrigatórios: ${emFalta.join(', ')}` 
+            });
+        }
+
+        // 4. Criar registo na BD
+        const novoRecurso = new Recurso({
+            titulo: manifest.titulo,
+            tipo: manifest.tipo,
+            dataRegisto: new Date(),
+            produtor: req.body.produtor,
+            visibilidade: req.body.visibilidade || 'público',
+            downloads: 0
+        });
+
+        const guardado = await novoRecurso.save();
+
+        // 5. Mover e Extrair
+        const storagePath = path.join(__dirname, '../uploads/recursos', guardado._id.toString());
+        if (!fs.existsSync(storagePath)) fs.mkdirSync(storagePath, { recursive: true });
+        
+        zip.extractAllTo(storagePath, true);
+        guardado.caminhoFicheiro = storagePath;
+        await guardado.save();
+
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        res.status(201).json(guardado);
+
+    } catch (err) {
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        res.status(500).json({ erro: "Erro interno: " + err.message });
+    }
+});
 
 router.get('/recursos/recentes', (req, res) => {
     RecursoController.getRecentes().then(dados => res.json(dados)).catch(erro => res.status(500).json(erro));

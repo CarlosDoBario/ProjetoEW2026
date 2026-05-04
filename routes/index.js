@@ -13,6 +13,7 @@ const apiURL = "http://localhost:7777/api";
 
 // --- LOGIN / LOGOUT / REGISTO ---
 router.get('/login', (req, res) => res.render('login'));
+
 router.post('/login', (req, res) => {
     axios.post(`${apiURL}/usuarios/login`, req.body).then(response => {
         res.cookie('token', response.data.token);
@@ -23,6 +24,7 @@ router.post('/login', (req, res) => {
         res.redirect('/login');
     });
 });
+
 router.get('/logout', (req, res) => { 
     res.clearCookie('token'); 
     req.flash('success', 'Sessão terminada.');
@@ -30,6 +32,7 @@ router.get('/logout', (req, res) => {
 });
 
 router.get('/registo', (req, res) => res.render('registo'));
+
 router.post('/registo', (req, res) => {
     axios.post(`${apiURL}/usuarios/registo`, req.body)
         .then(() => {
@@ -43,7 +46,7 @@ router.post('/registo', (req, res) => {
 });
 
 // --- PERFIL ---
-router.get('/perfil', auth.verificaAcesso, async (req, res) => {
+router.get('/perfil', auth.verificaAcesso, async (req, res, next) => {
     try {
         const [userRes, recursosRes] = await Promise.all([
             axios.get(`${apiURL}/usuarios/${req.user.id}`),
@@ -51,7 +54,9 @@ router.get('/perfil', auth.verificaAcesso, async (req, res) => {
         ]);
         const meusRecursos = recursosRes.data.filter(r => r.produtor === req.user.nome);
         res.render('perfil', { user: req.user, perfil: userRes.data, meusRecursos, query: req.query });
-    } catch (e) { res.render('error', { error: e }); }
+    } catch (e) { 
+        next(e); 
+    }
 });
 
 router.post('/perfil/password', auth.verificaAcesso, (req, res) => {
@@ -66,10 +71,10 @@ router.post('/perfil/password', auth.verificaAcesso, (req, res) => {
         });
 });
 
-router.get('/perfil/editar', auth.verificaAcesso, (req, res) => {
+router.get('/perfil/editar', auth.verificaAcesso, (req, res, next) => {
     axios.get(`${apiURL}/usuarios/${req.user.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
     .then(dados => res.render('edit_perfil', { user: dados.data, isAdminEdit: false }))
-    .catch(e => res.render('error', { error: e }));
+    .catch(e => next(e));
 });
 
 router.post('/perfil/editar', auth.verificaAcesso, (req, res) => {
@@ -84,7 +89,7 @@ router.post('/perfil/editar', auth.verificaAcesso, (req, res) => {
 });
 
 // --- RECURSOS ---
-router.get('/recursos', auth.verificaAcesso, (req, res) => {
+router.get('/recursos', auth.verificaAcesso, (req, res, next) => {
     axios.get(`${apiURL}/recursos`, { params: req.query })
         .then(r => {
             res.render('recursos', { 
@@ -93,11 +98,19 @@ router.get('/recursos', auth.verificaAcesso, (req, res) => {
                 filtros: req.query 
             });
         })
-        .catch(err => res.render('error', { error: err }));
+        .catch(err => next(err));
 });
 
-router.get('/recursos/:id', auth.verificaAcesso, (req, res) => {
-    axios.get(`${apiURL}/recursos/${req.params.id}`).then(r => res.render('recurso', { recurso: r.data, user: req.user })).catch(err => res.render('error', { error: err }));
+router.get('/recursos/:id', auth.verificaAcesso, (req, res, next) => {
+    axios.get(`${apiURL}/recursos/${req.params.id}`)
+        .then(r => res.render('recurso', { recurso: r.data, user: req.user }))
+        .catch(err => {
+            if (err.response && err.response.status === 404) {
+                err.message = "Recurso não encontrado.";
+                err.status = 404;
+            }
+            next(err);
+        });
 });
 
 // DOWNLOAD
@@ -117,9 +130,10 @@ router.get('/recursos/:id/download', auth.verificaAcesso, async (req, res) => {
     }
 });
 
-router.get('/recursos/editar/:id', auth.verificaAcesso, (req, res) => {
+router.get('/recursos/editar/:id', auth.verificaAcesso, (req, res, next) => {
     axios.get(`${apiURL}/recursos/${req.params.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
-    .then(dados => res.render('edit_recurso', { r: dados.data })).catch(e => res.render('error', { error: e }));
+    .then(dados => res.render('edit_recurso', { r: dados.data }))
+    .catch(e => next(e));
 });
 
 router.post('/recursos/editar/:id', auth.verificaAcesso, (req, res) => {
@@ -145,38 +159,56 @@ router.post('/recursos/:id/avaliar', auth.verificaAcesso, (req, res) => {
 });
 
 // --- FEED ---
-router.get('/feed', auth.verificaAcesso, async (req, res) => {
+router.get('/feed', auth.verificaAcesso, async (req, res, next) => {
     try {
         const [recentesRes, topRes] = await Promise.all([
             axios.get(`${apiURL}/recursos/recentes`),
             axios.get(`${apiURL}/recursos/top`)
         ]);
         res.render('feed', { recentes: recentesRes.data, top: topRes.data, user: req.user });
-    } catch (e) { res.render('error', { error: e }); }
+    } catch (e) { 
+        next(e); 
+    }
 });
 
 // --- UPLOAD ---
-router.get('/upload', auth.verificaAcesso, (req, res) => {
-    if (req.user.nivel === 'consumidor') return res.render('error', { message: "Sem permissão." });
+router.get('/upload', auth.verificaAcesso, (req, res, next) => {
+    if (req.user.nivel === 'consumidor') {
+        const err = new Error("Sem permissão para aceder a esta página.");
+        err.status = 403;
+        return next(err);
+    }
     res.render('upload', { user: req.user });
 });
 
 router.post('/upload', auth.verificaAcesso, upload.single('recursoZip'), (req, res) => {
+    if (!req.file) {
+        req.flash('error', 'Selecione um ficheiro ZIP.');
+        return res.redirect('/upload');
+    }
+
     const form = new FormData();
     form.append('produtor', req.user.nome);
     form.append('visibilidade', req.body.visibilidade);
     form.append('recursoZip', fs.createReadStream(req.file.path));
-    axios.post(`${apiURL}/recursos`, form, { headers: { ...form.getHeaders() } }).then(() => {
-        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-        req.flash('success', 'Recurso submetido com sucesso!');
-        res.redirect('/recursos');
-    }).catch(err => {
-        req.flash('error', 'Erro ao submeter recurso.');
-        res.redirect('/upload');
-    });
+
+    axios.post(`${apiURL}/recursos`, form, { headers: { ...form.getHeaders() } })
+        .then(() => {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            req.flash('success', 'Recurso submetido com sucesso!');
+            res.redirect('/recursos');
+        })
+        .catch(err => {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            // Captura a mensagem de erro detalhada da API (ex: falta de manifesto)
+            const msg = err.response?.data?.erro || 'Erro ao submeter recurso.';
+            req.flash('error', msg);
+            res.redirect('/upload');
+        });
 });
 
 // --- SOCIAL ---
+// (Resto das rotas sociais mantidas como no original...)
 router.post('/recursos/:id/posts', auth.verificaAcesso, (req, res) => {
     axios.post(`${apiURL}/recursos/${req.params.id}/posts`, { ...req.body, autor: req.user.nome })
     .then(() => {
@@ -201,7 +233,11 @@ router.post('/posts/:id/apagar', auth.verificaAcesso, (req, res) => {
 
 router.post('/posts/:id/comentarios', auth.verificaAcesso, (req, res) => {
     axios.post(`${apiURL}/posts/${req.params.id}/comentarios`, { autor: req.user.nome, conteudo: req.body.conteudo })
-        .then(() => res.redirect('/recursos/' + req.body.recursoId)).catch(e => res.render('error', { error: e }));
+        .then(() => res.redirect('/recursos/' + req.body.recursoId))
+        .catch(e => {
+            req.flash('error', 'Erro ao adicionar comentário.');
+            res.redirect('/recursos/' + req.body.recursoId);
+        });
 });
 
 router.post('/posts/:postId/comentarios/:comentarioId/editar', auth.verificaAcesso, (req, res) => {
@@ -209,29 +245,50 @@ router.post('/posts/:postId/comentarios/:comentarioId/editar', auth.verificaAces
     .then(() => {
         req.flash('success', 'Comentário editado.');
         res.redirect('/recursos/' + req.body.recursoId);
-    }).catch(e => res.render('error', { error: e }));
+    }).catch(e => {
+        req.flash('error', 'Erro ao editar comentário.');
+        res.redirect('/recursos/' + req.body.recursoId);
+    });
 });
 
 router.post('/posts/:postId/comentarios/:comentarioId/apagar', auth.verificaAcesso, (req, res) => {
     axios.delete(`${apiURL}/posts/${req.params.postId}/comentarios/${req.params.comentarioId}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
-    .then(() => res.redirect('/recursos/' + req.body.recursoId)).catch(e => res.render('error', { error: e }));
+    .then(() => {
+        req.flash('success', 'Comentário apagado.');
+        res.redirect('/recursos/' + req.body.recursoId);
+    }).catch(e => {
+        req.flash('error', 'Erro ao apagar comentário.');
+        res.redirect('/recursos/' + req.body.recursoId);
+    });
 });
 
 // --- ADMIN ---
-router.get('/admin', auth.verificaAcesso, async (req, res) => {
-    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Acesso Negado." });
+router.get('/admin', auth.verificaAcesso, async (req, res, next) => {
+    if (req.user.nivel !== 'administrador') {
+        const err = new Error("Acesso Negado: Apenas administradores podem entrar aqui.");
+        err.status = 403;
+        return next(err);
+    }
     try {
         const usersRes = await axios.get(`${apiURL}/usuarios`, { headers: { Authorization: `Bearer ${req.cookies.token}` } });
         res.render('admin', { user: req.user, usuarios: usersRes.data });
-    } catch (e) { res.render('error', { error: e }); }
+    } catch (e) { 
+        next(e); 
+    }
 });
 
-router.get('/admin/usuarios/:id/editar', auth.verificaAcesso, async (req, res) => {
-    if (req.user.nivel !== 'administrador') return res.render('error', { message: "Acesso Negado." });
+router.get('/admin/usuarios/:id/editar', auth.verificaAcesso, async (req, res, next) => {
+    if (req.user.nivel !== 'administrador') {
+        const err = new Error("Acesso Negado.");
+        err.status = 403;
+        return next(err);
+    }
     try {
         const dados = await axios.get(`${apiURL}/usuarios/${req.params.id}`, { headers: { Authorization: `Bearer ${req.cookies.token}` } });
         res.render('edit_perfil', { user: dados.data, isAdminEdit: true });
-    } catch (e) { res.render('error', { error: e }); }
+    } catch (e) { 
+        next(e); 
+    }
 });
 
 router.post('/admin/usuarios/:id/editar', auth.verificaAcesso, (req, res) => {
@@ -239,12 +296,21 @@ router.post('/admin/usuarios/:id/editar', auth.verificaAcesso, (req, res) => {
     .then(() => {
         req.flash('success', 'Utilizador editado.');
         res.redirect('/admin');
-    }).catch(e => res.render('error', { error: e }));
+    }).catch(e => {
+        req.flash('error', 'Erro ao editar utilizador.');
+        res.redirect('/admin');
+    });
 });
 
 router.post('/admin/usuarios/:id/nivel', auth.verificaAcesso, (req, res) => {
     axios.patch(`${apiURL}/usuarios/${req.params.id}/nivel`, { nivel: req.body.nivel }, { headers: { Authorization: `Bearer ${req.cookies.token}` } })
-    .then(() => res.redirect('/admin')).catch(e => res.render('error', { error: e }));
+    .then(() => {
+        req.flash('success', 'Nível de acesso alterado.');
+        res.redirect('/admin');
+    }).catch(e => {
+        req.flash('error', 'Erro ao alterar nível.');
+        res.redirect('/admin');
+    });
 });
 
 router.post('/admin/usuarios/:id/apagar', auth.verificaAcesso, (req, res) => {
@@ -252,10 +318,13 @@ router.post('/admin/usuarios/:id/apagar', auth.verificaAcesso, (req, res) => {
     .then(() => {
         req.flash('success', 'Utilizador removido.');
         res.redirect('/admin');
-    }).catch(e => res.render('error', { error: e }));
+    }).catch(e => {
+        req.flash('error', 'Erro ao remover utilizador.');
+        res.redirect('/admin');
+    });
 });
 
-router.get('/recursos/:id/ficheiro/:nome', auth.verificaAcesso, async (req, res) => {
+router.get('/recursos/:id/ficheiro/:nome', auth.verificaAcesso, async (req, res, next) => {
     try {
         const response = await axios.get(`${apiURL}/recursos/${req.params.id}`);
         const recurso = response.data;

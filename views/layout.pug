@@ -2,8 +2,8 @@ doctype html
 html
   head
     title Repositório EngWeb
-    link(rel='stylesheet', href='/css/style.css')
     link(rel='stylesheet', href='https://www.w3schools.com/w3css/4/w3.css')
+    link(rel='stylesheet', href='/css/style.css')
   body
     .w3-bar.w3-teal
       a.w3-bar-item.w3-button(href="/") Início
@@ -20,12 +20,15 @@ html
       else
         a.w3-bar-item.w3-button.w3-right(href="/login") Login
     
+    //- Alertas de Feedback
     if success && success.length > 0
-      .w3-container.w3-green.w3-padding
+      .w3-container.w3-green.w3-padding.w3-animate-top
+        span.w3-button.w3-right(onclick="this.parentElement.style.display='none'") &times;
         p= success
     
     if error && error.length > 0
-      .w3-container.w3-red.w3-padding
+      .w3-container.w3-red.w3-padding.w3-animate-top
+        span.w3-button.w3-right(onclick="this.parentElement.style.display='none'") &times;
         p= error
 
     block content

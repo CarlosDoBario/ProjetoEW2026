@@ -5,7 +5,7 @@ const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const createError = require('http-errors');
 const session = require('express-session');
-const flash = require('connect-flash'); 
+const flash = require('connect-flash');
 
 const indexRouter = require('./routes/index'); 
 const apiRouter = require('./routes/api');
@@ -28,6 +28,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser()); 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Configuração de Sessão e Flash
 app.use(session({
   secret: 'ProjetoEW2026_Secret_Key',
   resave: false,
@@ -35,9 +36,11 @@ app.use(session({
 }));
 app.use(flash());
 
+// Middleware para variáveis globais nas views
 app.use((req, res, next) => {
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
+  res.locals.user = req.user || null; // Caso o middleware de auth já tenha injetado o user
   next();
 });
 
@@ -45,13 +48,13 @@ app.use((req, res, next) => {
 app.use('/api', apiRouter); 
 app.use('/', indexRouter); 
 
-// Erros
+// Gestão de Erros
 app.use((req, res, next) => next(createError(404)));
 app.use((err, req, res, next) => {
   res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  res.locals.error = req.app.get('env') === 'development' ? err : { status: err.status };
   res.status(err.status || 500);
-  res.render('error');
+  res.render('error', { user: req.user });
 });
 
 const PORT = 7777;
