@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const fsExtra = require('fs-extra');
+const UserModel = require('../models/user'); 
 
 const Recurso = require('../models/recurso');
 const Post = require('../models/post');
@@ -93,17 +95,8 @@ router.get('/recursos', async (req, res) => {
         let query = {};
         let sort = { dataRegisto: -1 }; 
 
-        // Filtro por pesquisa (título)
-        if (req.query.search) {
-            query.titulo = { $regex: req.query.search, $options: 'i' };
-        }
-
-        // Filtro por tipo
-        if (req.query.tipo) {
-            query.tipo = req.query.tipo;
-        }
-
-        // Ordenação
+        if (req.query.search) query.titulo = { $regex: req.query.search, $options: 'i' };
+        if (req.query.tipo) query.tipo = req.query.tipo;
         if (req.query.sort) {
             if (req.query.sort === 'data') sort = { dataRegisto: -1 };
             if (req.query.sort === 'downloads') sort = { downloads: -1 };
@@ -112,9 +105,7 @@ router.get('/recursos', async (req, res) => {
 
         const recursos = await Recurso.find(query).sort(sort);
         res.json(recursos);
-    } catch (err) { 
-        res.status(500).json({ erro: err.message }); 
-    }
+    } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
 router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
@@ -122,48 +113,62 @@ router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
         if (!req.file) return res.status(400).json({ erro: "ZIP não recebido." });
 
         const zip = new AdmZip(req.file.path);
-        const zipEntries = zip.getEntries(); // Obtemos todos os ficheiros do ZIP
+        const zipEntries = zip.getEntries(); 
 
-        // 1. Procurar por QUALQUER ficheiro .json na raiz
-        // (Filtramos por entradas que não estão em subpastas e terminam em .json)
         const manifestEntry = zipEntries.find(entry => 
             !entry.isDirectory && 
             entry.entryName.split('/').length === 1 && 
             entry.entryName.toLowerCase().endsWith('.json')
         );
 
-        // --- ERRO DE EXISTÊNCIA ---
         if (!manifestEntry) {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            return res.status(400).json({ 
-                erro: "Erro: Não foi encontrado nenhum ficheiro de configuração (.json) na raiz do ZIP." 
-            });
+            return res.status(400).json({ erro: "Erro: Não foi encontrado nenhum ficheiro de configuração (.json) na raiz do ZIP." });
         }
 
-        // --- ERRO DE FORMATO (Tipo 2) ---
         let manifest;
         try {
             const content = manifestEntry.getData().toString('utf8');
             manifest = JSON.parse(content);
         } catch (e) {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            return res.status(400).json({ 
-                erro: `Erro de formato: O ficheiro '${manifestEntry.entryName}' contém erros de sintaxe (JSON inválido).` 
-            });
+            return res.status(400).json({ erro: `Erro de formato: O ficheiro '${manifestEntry.entryName}' contém erros de sintaxe.` });
         }
 
-        // --- ERRO DE CONTEÚDO (Tipo 3) ---
+        // 1. Validação de Metadados (O que já tinhas)
         const campos = ['titulo', 'tipo', 'dataCriacao'];
         const emFalta = campos.filter(c => !manifest[c]);
-        
         if (emFalta.length > 0) {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            return res.status(400).json({ 
-                erro: `Erro de conteúdo em '${manifestEntry.entryName}': Faltam os campos obrigatórios: ${emFalta.join(', ')}` 
-            });
+            return res.status(400).json({ erro: `Faltam os campos obrigatórios: ${emFalta.join(', ')}` });
         }
 
-        // 4. Criar registo na BD
+        // =========================================================================
+        // 2. VALIDAÇÃO ESTRUTURAL DO SIP (Obrigatório)
+        // =========================================================================
+        
+        // Verifica se o manifesto tem a lista de ficheiros declarada
+        if (!manifest.ficheiros || !Array.isArray(manifest.ficheiros)) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ erro: "Validação SIP Falhou: O manifesto não contém um array 'ficheiros' válido." });
+        }
+
+        // Obtém o nome de todos os ficheiros e pastas que vêm dentro do ZIP
+        const nomesNoZip = zipEntries.map(e => e.entryName);
+
+        // Verifica se todos os ficheiros declarados no manifesto existem realmente no ZIP
+        const ficheirosEmFalta = manifest.ficheiros.filter(ficheiro => !nomesNoZip.includes(ficheiro));
+
+        if (ficheirosEmFalta.length > 0) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            // Cumpre a exigência: "um relatório de erros deverá ser enviado a quem fez a submissão"
+            return res.status(400).json({ 
+                erro: `Validação Estrutural SIP Falhou: Ficheiros declarados no manifesto não foram encontrados no ZIP: [${ficheirosEmFalta.join(', ')}].` 
+            });
+        }
+        // =========================================================================
+
+        // 3. Se passou em tudo, guardar na BD
         const novoRecurso = new Recurso({
             titulo: manifest.titulo,
             tipo: manifest.tipo,
@@ -175,15 +180,17 @@ router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
 
         const guardado = await novoRecurso.save();
 
-        // 5. Mover e Extrair
         const storagePath = path.join(__dirname, '../uploads/recursos', guardado._id.toString());
         if (!fs.existsSync(storagePath)) fs.mkdirSync(storagePath, { recursive: true });
         
+        // Extrair ZIP para a pasta final
         zip.extractAllTo(storagePath, true);
         guardado.caminhoFicheiro = storagePath;
         await guardado.save();
 
+        // Limpar o ficheiro ZIP temporário que o multer criou
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        
         res.status(201).json(guardado);
 
     } catch (err) {
@@ -210,20 +217,12 @@ router.get('/recursos/:id', async (req, res) => {
         if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado" });
 
         const posts = await Post.find({ recursoId: req.params.id }).sort({ createdAt: -1 });
-        
         let ficheiros = [];
         if (recurso.caminhoFicheiro && fs.existsSync(recurso.caminhoFicheiro)) {
             ficheiros = fs.readdirSync(recurso.caminhoFicheiro);
         }
-
-        res.json({ 
-            ...recurso._doc, 
-            posts: posts, 
-            conteudo: ficheiros 
-        });
-    } catch (err) { 
-        res.status(500).json({ erro: err.message }); 
-    }
+        res.json({ ...recurso._doc, posts: posts, conteudo: ficheiros });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
 router.delete('/recursos/:id', async (req, res) => {
@@ -287,6 +286,90 @@ router.delete('/posts/:postId/comentarios/:comentarioId', verificaToken, async (
         await Post.findByIdAndUpdate(req.params.postId, { $pull: { comentarios: { _id: req.params.comentarioId } } });
         res.json({ mensagem: "Apagado." });
     } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
+
+router.get('/admin/exportar', verificaToken, async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    
+    try {
+        const zip = new AdmZip(); // Usamos o AdmZip que já usas no resto do projeto!
+
+        // 1. Guardar a base de dados num JSON
+        const data = {
+            users: await UserModel.find(),
+            recursos: await Recurso.find(),
+            posts: await Post.find()
+        };
+        
+        // Adiciona o ficheiro JSON diretamente ao ZIP em memória
+        const jsonString = JSON.stringify(data, null, 2);
+        zip.addFile('db_backup.json', Buffer.from(jsonString, 'utf8'));
+
+        // 2. Guardar a pasta com os ficheiros extraídos
+        const recursosPath = path.join(__dirname, '../uploads/recursos');
+        if (fs.existsSync(recursosPath)) {
+            // Adiciona a pasta inteira ao ZIP com o nome "recursos"
+            zip.addLocalFolder(recursosPath, 'recursos');
+        }
+
+        // 3. Gerar e Enviar para o Cliente
+        const zipBuffer = zip.toBuffer();
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename="sistema_backup.zip"');
+        res.send(zipBuffer);
+
+    } catch (err) { 
+        res.status(500).json({ erro: err.message }); 
+    }
+});
+
+router.post('/admin/importar', verificaToken, upload.single('backupZip'), async (req, res) => {
+    if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
+    
+    try {
+        if (!req.file) return res.status(400).json({ erro: "ZIP de backup não recebido." });
+
+        const zip = new AdmZip(req.file.path);
+        const tempDir = path.join(__dirname, '../uploads/temp_import_' + Date.now());
+        zip.extractAllTo(tempDir, true);
+
+        const backupPath = path.join(tempDir, 'db_backup.json');
+        if (!fs.existsSync(backupPath)) {
+            fsExtra.removeSync(tempDir);
+            return res.status(400).json({ erro: "Formato inválido: db_backup.json não encontrado." });
+        }
+
+        const rawData = fs.readFileSync(backupPath, 'utf8');
+        const data = JSON.parse(rawData);
+
+        // 1. Limpar a Base de Dados atual
+        await UserModel.deleteMany({});
+        await Recurso.deleteMany({});
+        await Post.deleteMany({});
+
+        // 2. Restaurar Dados
+        if (data.users && data.users.length > 0) await UserModel.insertMany(data.users);
+        if (data.recursos && data.recursos.length > 0) await Recurso.insertMany(data.recursos);
+        if (data.posts && data.posts.length > 0) await Post.insertMany(data.posts);
+
+        // 3. Restaurar Ficheiros
+        const recursosExtraidosDir = path.join(tempDir, 'recursos');
+        const targetRecursosDir = path.join(__dirname, '../uploads/recursos');
+        
+        if (fs.existsSync(targetRecursosDir)) fsExtra.removeSync(targetRecursosDir);
+        if (fs.existsSync(recursosExtraidosDir)) {
+            fsExtra.copySync(recursosExtraidosDir, targetRecursosDir);
+        }
+
+        // 4. Limpeza de ficheiros temporários
+        fsExtra.removeSync(tempDir);
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+        res.json({ mensagem: "Sistema restaurado com sucesso!" });
+    } catch (err) {
+        res.status(500).json({ erro: "Erro na importação: " + err.message });
+    }
 });
 
 module.exports = router;
