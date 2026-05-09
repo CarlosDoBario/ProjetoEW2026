@@ -35,17 +35,84 @@ block content
                       option(value="administrador" selected=(u.nivel === 'administrador')) Administrador
                     button.w3-button.w3-small.w3-blue.w3-round(type="submit") Alterar
                 td
-                  // Botão de Editar
                   a.w3-button.w3-small.w3-amber.w3-round(href="/admin/usuarios/" + u._id + "/editar") ✏️ Editar
                 td
                   if u._id.toString() !== user.id.toString()
                     form(method="POST" action="/admin/usuarios/" + u._id + "/apagar")
-                      button.w3-button.w3-small.w3-red.w3-round(
-                        type="submit" 
-                        onclick="return confirm('Tens a certeza que queres eliminar este utilizador? Esta ação é irreversível!')"
-                      ) 🗑 Apagar
+                      button.w3-button.w3-small.w3-red.w3-round(type="submit" onclick="return confirm('Tens a certeza?')") 🗑 Apagar
                   else
                     span.w3-text-grey (Tu)
-                    
+
+    .w3-container.w3-margin-top.w3-margin-bottom
+      .w3-card-4
+        header.w3-container.w3-teal
+          h2 📦 Exportação e Importação Global
+        .w3-container.w3-padding-16
+          .w3-row-padding
+            .w3-half
+              h4 Exportar Sistema
+              p Descarrega um ZIP com a base de dados e todos os recursos.
+              button.w3-button.w3-blue.w3-round#btnExportar ⬇️ Descarregar Backup
+            .w3-half
+              h4 Importar Sistema
+              p Restaura o sistema com um ficheiro de backup (.zip).
+              b.w3-text-red ATENÇÃO: Os dados atuais serão apagados!
+              form#formImportar(style="margin-top: 10px;")
+                input.w3-input.w3-border(type="file" id="backupZip" accept=".zip" required)
+                button.w3-button.w3-green.w3-round.w3-margin-top(type="submit") ⬆️ Restaurar Backup
+
     .w3-container.w3-margin-top
       a.w3-button.w3-teal(href="/recursos") Voltar aos Recursos
+
+  script.
+    function getCookie(name) {
+      const value = "; " + document.cookie;
+      const parts = value.split("; " + name + "=");
+      if (parts.length === 2) return parts.pop().split(";").shift();
+      return "";
+    }
+
+    const token = getCookie('token');
+
+    document.getElementById('btnExportar').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/admin/exportar', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.erro || 'Falha na exportação.');
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sistema_backup.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+
+    document.getElementById('formImportar').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!confirm('Confirmas a restauração completa?')) return;
+      const fileInput = document.getElementById('backupZip');
+      const formData = new FormData();
+      formData.append('backupZip', fileInput.files[0]);
+      try {
+        const res = await fetch('/api/admin/importar', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.erro || 'Erro na importação');
+        alert('Sistema restaurado com sucesso!');
+        window.location.reload();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
