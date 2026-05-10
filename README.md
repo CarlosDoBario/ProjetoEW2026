@@ -14,7 +14,7 @@ Carlos Cunha (a106910);
 
 No âmbito da Unidade Curricular de Engenharia Web, foi proposta a criação de uma Plataforma de Gestão e Disponibilização de Recursos Educativos. O principal objetivo deste projeto consistiu no desenvolvimento de uma aplicação web robusta, capaz de suportar a submissão, armazenamento, validação e partilha de diversos tipos de materiais didáticos (como artigos, teses, aplicações, testes, entre outros).
 
-A plataforma foi desenhada para cumprir requisitos estritos de arquivo digital, implementando processos de **Ingestão**, **Armazenamento** e **Disseminação** . Adicionalmente, o sistema requer autenticação e autorização estruturada em três níveis de privilégio (Administrador, Produtor e Consumidor), promovendo ainda a interação social através de um sistema de classificações, comentários e um *feed* de notícias dinâmico.
+A plataforma foi desenhada para cumprir requisitos estritos de arquivo digital, implementando processos de **Ingestão**, **Armazenamento** e **Disseminação** . Adicionalmente, o sistema requer autenticação e autorização estruturada em três níveis de privilégio (Administrador, Produtor e Consumidor), promovendo ainda a interação social através de um sistema de classificações, comentários e um *feed* dinâmico.
 
 ## Instruções de Instalação e Execução:
 1. Instalar as dependências do projeto Node.js:
@@ -33,20 +33,15 @@ O sistema foi desenhado com base numa arquitetura cliente-servidor, adotando um 
 
 ## Funcionalidades Implementadas:
 
-- **Autenticação e Autorização:** Foi implementado um sistema de controlo de acessos robusto com três níveis de perfil: Consumidor (acesso a recursos públicos), Produtor (gestão dos seus próprios recursos) e Administrador (controlo total do sistema). Esta diferenciação é assegurada por middlewares que verificam o nível de privilégio no JWT.
-- **Ingestão de Pacotes (SIP):** O sistema permite a submissão de pacotes em formato .zip. Durante o processo de ingestão, o backend localiza automaticamente o ficheiro de manifesto JSON na raiz do pacote para extrair os metadados do recurso.
-- **Validação Estrutural SIP:** Cumprindo a exigência de verificação contra o manifesto, foi implementada uma validação que cruza a lista de ficheiros declarada no JSON com o conteúdo real do ZIP. Caso existam ficheiros em falta, o sistema interrompe a submissão e devolve um relatório de erros detalhado ao utilizador.
-- **Disseminação (DIP):** O processo de disseminação permite que os utilizadores descarreguem os recursos armazenados. O sistema reconstrói o pacote para entrega (DIP), mantendo a integridade dos ficheiros originais que foram convertidos de SIP para AIP (Archival Information Package) durante o armazenamento.
-- **Interação Social:** Foi desenvolvida uma área de interação que permite aos utilizadores avaliar recursos através de um sistema de ratings (1 a 5 estrelas). Além disso, cada recurso possui um fórum dedicado onde podem ser criados posts e comentários dinâmicos para promover a discussão entre utilizadores.
-- **Feed Dinâmico e Notícias:** A página principal atua como um centro de notícias gerado automaticamente, apresentando os recursos mais recentes e os "Melhores Classificados" (Top 3).
-- **Administração e Backups:** A plataforma inclui funcionalidades de exportação e importação global. O administrador pode gerar um ficheiro ZIP contendo o estado completo da base de dados (JSON) e todos os ficheiros físicos do servidor, permitindo o restauro total do sistema em caso de falha ou migração.
+- **Autenticação e Autorização:** Foi implementado um sistema de controlo de acessos com três níveis de perfil: Consumidor (acesso a recursos), Produtor (submissão de recursos) e Administrador (controlo do sistema). Esta diferenciação é assegurada por middlewares que verificam a existência de sessão no JWT.
+- **Ingestão de Pacotes (SIP):** O sistema permite a submissão de pacotes em formato .zip. Durante o processo de ingestão, o backend localiza automaticamente o ficheiro de manifesto JSON para extrair os metadados do recurso.
+- **Validação Inicial SIP:** Durante o processo de submissão, foi implementada uma validação que garante a presença do ficheiro de manifesto no pacote submetido. Caso o manifesto não exista, o sistema interrompe a submissão e devolve um erro ao utilizador.
+- **Disseminação (DIP):** O processo de disseminação permite que os utilizadores descarreguem os recursos armazenados. O sistema reconstrói o pacote para entrega (DIP) em formato ZIP, mantendo a integridade dos ficheiros originais da pasta de armazenamento.
+- **Interação Social:** Foi desenvolvida uma área de interação que permite aos utilizadores avaliar recursos através de um sistema de ratings. Além disso, cada recurso possui um fórum dedicado onde podem ser criados posts e comentários para promover a discussão.
+- **Feed Dinâmico:** A página principal atua como um centro de destaques, apresentando os recursos submetidos mais recentemente na plataforma e os "Melhores Classificados" do sistema.
 
 ## Desafios e Decisões Técnicas:
 
-O desenvolvimento da plataforma envolveu algumas escolhas arquiteturais e desafios para garantir o cumprimento total daquilo que era pedido no enunciado e a resiliência do sistema. Destacam-se as seguintes decisões técnicas:
+O desenvolvimento da plataforma envolveu escolhas arquiteturais para garantir o funcionamento do sistema de armazenamento. Destaca-se a seguinte decisão técnica:
 
-- **Validação Estrutural do Manifesto (SIP):** O enunciado exigia que a estrutura do pacote submetido fosse validada contra o manifesto. O desafio centrava-se em garantir que os ficheiros declarados no JSON correspondiam ao conteúdo do ZIP antes de permitir qualquer persistência de dados. Decidimos então, carregar o ZIP temporário em memória através da biblioteca adm-zip e mapear todas as entradas lá contidas num array. De seguida, o sistema cruza esta lista com as entradas do manifesto. Caso se detetem ficheiros em falta, o servidor interrompe o processo, elimina os ficheiros temporários para não sobrecarregar o armazenamento, e devolve o erro.
-- **Mecanismos de Exportação e Importação Global:** Ao desenvolver a importação de cópias de segurança, o principal risco técnico residia na ocorrência de conflitos de identificadores únicos (_id) do MongoDB e na dessincronização de ficheiros antigos. A solução foi aplicar uma política de "limpeza total". Antes de injetar os dados do ficheiro db_backup.json, o sistema elimina as coleções de Utilizadores, Recursos e Posts utilizando deleteMany({}). A reposição é então assegurada através do método insertMany(), garantindo o restauro das relações originais. Simultaneamente, recorreu-se ao módulo fs-extra para remover por completo o diretório de /uploads/recursos existente e substituí-lo pelos ficheiros extraídos do backup, garantindo que não sobrevivem ficheiros "órfãos" na máquina após a importação.
-
-
-
+- **Extração e Processamento do Manifesto (SIP):** Um dos desafios iniciais prendia-se com a leitura do manifesto sem necessitar de descompactar o ZIP inteiro previamente, poupando recursos. Decidimos carregar o ficheiro submetido temporariamente através da biblioteca `adm-zip` e mapear as entradas contidas. O sistema itera sobre as entradas para localizar o manifesto (através de um *match* do nome), faz o parsing do JSON diretamente a partir do ZIP e extrai os metadados para persistência no MongoDB, antes de mover os ficheiros para a sua pasta de arquivo definitiva.
