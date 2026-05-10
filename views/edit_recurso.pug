@@ -19,9 +19,10 @@ block content
 
         label.w3-text-blue-grey: b Visibilidade
         select.w3-select.w3-border(name="visibilidade")
-          option(value="publico" selected=(r.visibilidade=="publico")) Público
+          option(value="público" selected=(r.visibilidade=="público")) Público
           option(value="privado" selected=(r.visibilidade=="privado")) Privado
 
         br
         button.w3-btn.w3-blue-grey.w3-round(type="submit") Atualizar
+      
         a.w3-btn.w3-red.w3-round.w3-margin-left(href="/recursos/" + r._id) Cancelar
