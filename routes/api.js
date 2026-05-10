@@ -312,7 +312,7 @@ router.get('/admin/exportar', verificaToken, async (req, res) => {
     if (req.user.nivel !== 'administrador') return res.status(403).json({ erro: "Acesso negado." });
     
     try {
-        const zip = new AdmZip(); // Usamos o AdmZip que já usas no resto do projeto!
+        const zip = new AdmZip();
 
         // 1. Guardar a base de dados num JSON
         const data = {
@@ -366,6 +366,17 @@ router.post('/admin/importar', verificaToken, upload.single('backupZip'), async 
         await UserModel.deleteMany({});
         await Recurso.deleteMany({});
         await Post.deleteMany({});
+
+        // ---- CORREÇÃO DOS DADOS ANTIGOS ----
+        if (data.recursos && data.recursos.length > 0) {
+            data.recursos = data.recursos.map(r => {
+                if (r.visibilidade === 'publico') {
+                    r.visibilidade = 'público'; // Restaura o acento exigido pelo Schema
+                }
+                return r;
+            });
+        }
+        // ------------------------------------
 
         // 2. Restaurar Dados
         if (data.users && data.users.length > 0) await UserModel.insertMany(data.users);
