@@ -1,0 +1,22 @@
+services:
+  app:
+    build: .
+    ports:
+      - "7777:7777"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017/mongoEW
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27018:27017"  # <--- MUDANÇA AQUI: O teu PC usa a 27018, o Docker usa a 27017
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

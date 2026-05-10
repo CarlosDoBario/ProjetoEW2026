@@ -12,12 +12,17 @@ const apiRouter = require('./routes/api');
 
 const app = express();
 
-const mongoDB = 'mongodb://127.0.0.1/mongoEW';
-mongoose.connect(mongoDB);
-const db = mongoose.connection;
+// --- Configuração da Base de Dados (Ajustada para Docker) ---
+// Se existir a variável MONGO_URL no ambiente (vinda do docker-compose), usa essa.
+// Caso contrário, tenta o localhost (para desenvolvimento local fora do Docker).
+const mongoDB = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/mongoEW';
 
-db.on('error', console.error.bind(console, 'Erro de ligação ao MongoDB...'));
-db.once('open', () => console.log("Ligação ao MongoDB efetuada com sucesso!"));
+mongoose.connect(mongoDB)
+  .then(() => console.log("Ligação ao MongoDB efetuada com sucesso!"))
+  .catch(err => console.error('Erro de ligação ao MongoDB:', err));
+
+const db = mongoose.connection;
+// -----------------------------------------------------------
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
@@ -40,7 +45,8 @@ app.use(flash());
 app.use((req, res, next) => {
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
-  res.locals.user = req.user || null; // Caso o middleware de auth já tenha injetado o user
+  // O utilizador pode vir do req.user (se usares Passport) ou da sessão
+  res.locals.user = req.user || req.session.user || null; 
   next();
 });
 
@@ -50,14 +56,22 @@ app.use('/', indexRouter);
 
 // Gestão de Erros
 app.use((req, res, next) => next(createError(404)));
+
 app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : { status: err.status };
   res.status(err.status || 500);
-  res.render('error', { user: req.user });
+  res.render('error', { user: res.locals.user });
 });
 
-const PORT = 7777;
-app.listen(PORT, () => console.log(`Servidor EngWeb2026 na porta ${PORT}...`));
+// Definição da Porta (Docker utiliza frequentemente a variável PORT)
+const PORT = process.env.PORT || 7777;
+app.listen(PORT, () => {
+  console.log(`
+  🚀 Servidor EngWeb2026 pronto!
+  🌍 URL: http://localhost:${PORT}
+  📦 DB: ${mongoDB}
+  `);
+});
 
 module.exports = app;
