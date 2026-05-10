@@ -41,5 +41,12 @@ O sistema foi desenhado com base numa arquitetura cliente-servidor, adotando um 
 - **Feed Dinâmico e Notícias:** A página principal atua como um centro de notícias gerado automaticamente, apresentando os recursos mais recentes e os "Melhores Classificados" (Top 3).
 - **Administração e Backups:** A plataforma inclui funcionalidades de exportação e importação global. O administrador pode gerar um ficheiro ZIP contendo o estado completo da base de dados (JSON) e todos os ficheiros físicos do servidor, permitindo o restauro total do sistema em caso de falha ou migração.
 
+## Desafios e Decisões Técnicas:
+
+O desenvolvimento da plataforma envolveu algumas escolhas arquiteturais e desafios para garantir o cumprimento total daquilo que era pedido no enunciado e a resiliência do sistema. Destacam-se as seguintes decisões técnicas:
+
+- **Validação Estrutural do Manifesto (SIP):** O enunciado exigia que a estrutura do pacote submetido fosse validada contra o manifesto. O desafio centrava-se em garantir que os ficheiros declarados no JSON correspondiam ao conteúdo do ZIP antes de permitir qualquer persistência de dados. Decidimos então, carregar o ZIP temporário em memória através da biblioteca adm-zip e mapear todas as entradas lá contidas num array. De seguida, o sistema cruza esta lista com as entradas do manifesto. Caso se detetem ficheiros em falta, o servidor interrompe o processo, elimina os ficheiros temporários para não sobrecarregar o armazenamento, e devolve o erro.
+- **Mecanismos de Exportação e Importação Global:** Ao desenvolver a importação de cópias de segurança, o principal risco técnico residia na ocorrência de conflitos de identificadores únicos (_id) do MongoDB e na dessincronização de ficheiros antigos. A solução foi aplicar uma política de "limpeza total". Antes de injetar os dados do ficheiro db_backup.json, o sistema elimina as coleções de Utilizadores, Recursos e Posts utilizando deleteMany({}). A reposição é então assegurada através do método insertMany(), garantindo o restauro das relações originais. Simultaneamente, recorreu-se ao módulo fs-extra para remover por completo o diretório de /uploads/recursos existente e substituí-lo pelos ficheiros extraídos do backup, garantindo que não sobrevivem ficheiros "órfãos" na máquina após a importação.
+
 
 
