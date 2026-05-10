@@ -1,4 +1,4 @@
-# Relatório de Engenharia Web: Plataforma de Gestão de Recursos Educativos
+# Projeto Engenharia Web: Plataforma de Gestão de Recursos Educativos
 
 **Unidade Curricular:** Engenharia Web
 
