@@ -113,6 +113,21 @@ router.get('/recursos/:id', auth.verificaAcesso, (req, res, next) => {
         });
 });
 
+// APAGAR 
+router.post('/recursos/apagar/:id', auth.verificaAcesso, (req, res) => {
+    axios.delete(`${apiURL}/recursos/${req.params.id}`, { 
+        headers: { Authorization: `Bearer ${req.cookies.token}` } 
+    })
+    .then(() => {
+        req.flash('success', 'Recurso removido com sucesso.');
+        res.redirect('/recursos');
+    })
+    .catch(err => {
+        req.flash('error', 'Erro ao remover recurso: ' + (err.response?.data?.erro || 'Negado.'));
+        res.redirect('/recursos/' + req.params.id);
+    });
+});
+
 // DOWNLOAD
 router.get('/recursos/:id/download', auth.verificaAcesso, async (req, res) => {
     try {

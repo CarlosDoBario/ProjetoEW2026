@@ -108,6 +108,25 @@ router.get('/recursos', async (req, res) => {
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
+// REMOÇÃO DE RECURSOS
+router.delete('/recursos/:id', verificaToken, async (req, res) => {
+    try {
+        const recurso = await Recurso.findById(req.params.id);
+        if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado." });
+
+        // Verificação: Administrador ou o próprio Produtor
+        if (req.user.nivel !== 'administrador' && recurso.produtor !== req.user.nome) {
+            return res.status(403).json({ erro: "Não tem permissão para apagar este recurso." });
+        }
+
+        if (recurso.caminhoFicheiro) {
+            fs.rmSync(recurso.caminhoFicheiro, { recursive: true, force: true });
+        }
+        await Recurso.findByIdAndDelete(req.params.id);
+        res.json({ mensagem: 'Recurso eliminado com sucesso.' });
+    } catch (err) { res.status(500).json({ erro: err.message }); }
+});
+
 router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ erro: "ZIP não recebido." });

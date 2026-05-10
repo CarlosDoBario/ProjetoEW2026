@@ -33,7 +33,7 @@ block content
                 option(value="downloads" selected=(filtros && filtros.sort == "downloads")) Downloads
                 option(value="titulo" selected=(filtros && filtros.sort == "titulo")) Título (A-Z)
             .w3-col.s2.w3-margin-top
-              button.w3-button.w3-teal.w3-block.w3-round(type="submit") 🔍 Filtrar
+              button.button.w3-button.w3-teal.w3-block.w3-round(type="submit") 🔍 Filtrar
             
         if lista && lista.length > 0
           table.w3-table-all.w3-hoverable
@@ -43,6 +43,8 @@ block content
                 th Produtor
                 th Visibilidade
                 th Data de Registo
+                if user && user.nivel !== 'consumidor'
+                  th Ações
             tbody
               each r in lista
                 tr
@@ -52,6 +54,14 @@ block content
                   td
                     span.w3-tag.w3-round(class=(r.visibilidade === 'publico' ? 'w3-green' : 'w3-orange'))= r.visibilidade
                   td= r.dataRegisto ? r.dataRegisto.substring(0, 10) : 'N/A'
+                  
+                  if user && user.nivel !== 'consumidor'
+                    td
+                      if user.nome === r.produtor || user.nivel === 'administrador'
+                        form(method="POST" action="/recursos/apagar/" + r._id style="display:inline")
+                          button.w3-button.w3-red.w3-tiny.w3-round(type="submit" onclick="return confirm('Deseja apagar este recurso?')") 🗑
+                      else
+                        span.w3-text-grey -
         else
           .w3-panel.w3-pale-yellow.w3-border
             p ℹ️ Nenhum recurso encontrado. Tenta outra pesquisa ou faz upload de um novo ficheiro!
