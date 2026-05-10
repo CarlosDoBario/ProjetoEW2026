@@ -1,8 +1,11 @@
 # Relatório de Engenharia Web: Plataforma de Gestão de Recursos Educativos
 
 **Unidade Curricular:** Engenharia Web
+
 **Ano Letivo:** 2025/2026
+
 Francisco Maia (a108962);
+
 Carlos Cunha (a106910);
 
 ---
