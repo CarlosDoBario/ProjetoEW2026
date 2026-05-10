@@ -1,0 +1,41 @@
+{
+  "users": [
+    {
+      "_id": "663e1f000000000000000001",
+      "nome": "Admin",
+      "email": "admin@ew.pt",
+      "nivel": "administrador",
+      "password": "$2a$10$vI8Z3Pb3XfSgL/L.hX59reVq6zT3p6lG9C7Y3H6/R/4M3u7f6i8q." 
+    },
+    {
+      "_id": "663e1f000000000000000002",
+      "nome": "Professor_Demo",
+      "email": "professor@ew.pt",
+      "nivel": "produtor",
+      "password": "$2a$10$vI8Z3Pb3XfSgL/L.hX59reVq6zT3p6lG9C7Y3H6/R/4M3u7f6i8q."
+    }
+  ],
+  "recursos": [
+    { "_id": "663e1f111111111111110001", "titulo": "Arq-son", "tipo": "dataset", "dataRegisto": "2026-05-10T10:00:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 45 },
+    { "_id": "663e1f111111111111110002", "titulo": "emdDatabase", "tipo": "dataset", "dataRegisto": "2026-05-10T10:05:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 30},
+    { "_id": "663e1f111111111111110003", "titulo": "EurovisionDataset", "tipo": "dataset", "dataRegisto": "2026-05-10T10:10:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 12},
+    { "_id": "663e1f111111111111110004", "titulo": "Ficha CG - Transformações Geométricas e Curvas e Superfícies", "tipo": "ficha", "dataRegisto": "2026-05-10T10:15:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 88},
+    { "_id": "663e1f111111111111110005", "titulo": "FichaCG-Iluminação", "tipo": "ficha", "dataRegisto": "2026-05-10T10:20:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 5 },
+    { "_id": "663e1f111111111111110006", "titulo": "Ficha1-ALG e Ficha2-ALG", "tipo": "ficha", "dataRegisto": "2026-05-10T10:25:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 22 },
+    { "_id": "663e1f111111111111110007", "titulo": "Ficha3-ALG", "tipo": "ficha", "dataRegisto": "2026-05-10T10:30:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 15 },
+    { "_id": "663e1f111111111111110008", "titulo": "Ficha4-ALG", "tipo": "ficha", "dataRegisto": "2026-05-10T10:35:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 9 },
+    { "_id": "663e1f111111111111110009", "titulo": "Exame 24/25 - ALG", "tipo": "exame", "dataRegisto": "2026-05-10T10:40:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 67 },
+    { "_id": "663e1f111111111111110010", "titulo": "Exame 23/24 - ALG", "tipo": "exame", "dataRegisto": "2026-05-10T10:45:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 54},
+    { "_id": "663e1f111111111111110011", "titulo": "Teste 23/24 - ALG", "tipo": "teste", "dataRegisto": "2026-05-10T10:50:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 120},
+    { "_id": "663e1f111111111111110012", "titulo": "Teste 24/25 - ALG", "tipo": "teste", "dataRegisto": "2026-05-10T10:55:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 18},
+    { "_id": "663e1f111111111111110013", "titulo": "Teste 24/25 - SO", "tipo": "teste", "dataRegisto": "2026-05-10T11:00:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 29},
+    { "_id": "663e1f111111111111110014", "titulo": "Exame 24/25 - SO", "tipo": "exame", "dataRegisto": "2026-05-10T11:05:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 33},
+    { "_id": "663e1f111111111111110015", "titulo": "Projeto 25/26 - SO", "tipo": "trabalho", "dataRegisto": "2026-05-10T11:10:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 99},
+    { "_id": "663e1f111111111111110016", "titulo": "Fichas123 CP", "tipo": "ficha", "dataRegisto": "2026-05-10T11:15:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 7},
+    { "_id": "663e1f111111111111110017", "titulo": "Fichas456 CP", "tipo": "ficha", "dataRegisto": "2026-05-10T11:20:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 41},
+    { "_id": "663e1f111111111111110018", "titulo": "Testes CP", "tipo": "teste", "dataRegisto": "2026-05-10T11:25:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 200},
+    { "_id": "663e1f111111111111110019", "titulo": "Fichas TP IA", "tipo": "ficha", "dataRegisto": "2026-05-10T11:30:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 38},
+    { "_id": "663e1f111111111111110020", "titulo": "Fichas123 IA", "tipo": "ficha", "dataRegisto": "2026-05-10T11:35:00Z", "produtor": "Professor_Demo", "visibilidade": "público", "downloads": 10}
+  ],
+  "posts": []
+}

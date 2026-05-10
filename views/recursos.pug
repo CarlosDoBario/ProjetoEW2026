@@ -23,7 +23,7 @@ block content
               label Tipo:
               select.w3-select.w3-border(name="tipo")
                 option(value="") Todos
-                - var tipos = ['Teste', 'Exame', 'Relatório', 'Trabalho']
+                - var tipos = ['Teste', 'Exame', 'Ficha', 'Dataset', 'Trabalho']
                 each t in tipos
                   option(value=t selected=(filtros && filtros.tipo == t))= t
             .w3-col.s3

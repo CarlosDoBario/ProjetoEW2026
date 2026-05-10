@@ -96,7 +96,7 @@ router.get('/recursos', async (req, res) => {
         let sort = { dataRegisto: -1 }; 
 
         if (req.query.search) query.titulo = { $regex: req.query.search, $options: 'i' };
-        if (req.query.tipo) query.tipo = req.query.tipo;
+        if (req.query.tipo) query.tipo = req.query.tipo.toLowerCase();
         if (req.query.sort) {
             if (req.query.sort === 'data') sort = { dataRegisto: -1 };
             if (req.query.sort === 'downloads') sort = { downloads: -1 };
@@ -236,12 +236,23 @@ router.get('/recursos/:id', async (req, res) => {
         if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado" });
 
         const posts = await Post.find({ recursoId: req.params.id }).sort({ createdAt: -1 });
+
+        const storagePath = path.resolve(__dirname, '../uploads/recursos', recurso._id.toString());
+        
         let ficheiros = [];
-        if (recurso.caminhoFicheiro && fs.existsSync(recurso.caminhoFicheiro)) {
-            ficheiros = fs.readdirSync(recurso.caminhoFicheiro);
+        if (fs.existsSync(storagePath)) {
+            ficheiros = fs.readdirSync(storagePath);
         }
-        res.json({ ...recurso._doc, posts: posts, conteudo: ficheiros });
-    } catch (err) { res.status(500).json({ erro: err.message }); }
+
+        res.json({ 
+            ...recurso._doc, 
+            posts: posts, 
+            conteudo: ficheiros,
+            caminhoFicheiro: storagePath 
+        });
+    } catch (err) { 
+        res.status(500).json({ erro: err.message }); 
+    }
 });
 
 router.delete('/recursos/:id', async (req, res) => {
@@ -359,44 +370,32 @@ router.post('/admin/importar', verificaToken, upload.single('backupZip'), async 
             return res.status(400).json({ erro: "Formato inválido: db_backup.json não encontrado." });
         }
 
-        const rawData = fs.readFileSync(backupPath, 'utf8');
-        const data = JSON.parse(rawData);
+        const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
 
-        // 1. Limpar a Base de Dados atual
+        // 1. Limpar e Restaurar BD
         await UserModel.deleteMany({});
         await Recurso.deleteMany({});
         await Post.deleteMany({});
 
-        // ---- CORREÇÃO DOS DADOS ANTIGOS ----
-        if (data.recursos && data.recursos.length > 0) {
-            data.recursos = data.recursos.map(r => {
-                if (r.visibilidade === 'publico') {
-                    r.visibilidade = 'público'; // Restaura o acento exigido pelo Schema
-                }
-                return r;
-            });
-        }
-        // ------------------------------------
+        if (data.users) await UserModel.insertMany(data.users);
+        if (data.recursos) await Recurso.insertMany(data.recursos);
+        if (data.posts) await Post.insertMany(data.posts);
 
-        // 2. Restaurar Dados
-        if (data.users && data.users.length > 0) await UserModel.insertMany(data.users);
-        if (data.recursos && data.recursos.length > 0) await Recurso.insertMany(data.recursos);
-        if (data.posts && data.posts.length > 0) await Post.insertMany(data.posts);
-
-        // 3. Restaurar Ficheiros
-        const recursosExtraidosDir = path.join(tempDir, 'recursos');
-        const targetRecursosDir = path.join(__dirname, '../uploads/recursos');
+        // 2. Restaurar Ficheiros para a pasta UPLOADS oficial
+        const recursosNoZip = path.join(tempDir, 'recursos');
+        const targetDir = path.resolve(__dirname, '../uploads/recursos');
         
-        if (fs.existsSync(targetRecursosDir)) fsExtra.removeSync(targetRecursosDir);
-        if (fs.existsSync(recursosExtraidosDir)) {
-            fsExtra.copySync(recursosExtraidosDir, targetRecursosDir);
+        if (fs.existsSync(recursosNoZip)) {
+            // Garante que a pasta de destino existe e está limpa
+            if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+            fsExtra.copySync(recursosNoZip, targetDir);
         }
 
-        // 4. Limpeza de ficheiros temporários
+        // 3. Limpeza
         fsExtra.removeSync(tempDir);
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-        res.json({ mensagem: "Sistema restaurado com sucesso!" });
+        res.json({ mensagem: "Sistema restaurado e ficheiros movidos para uploads/recursos!" });
     } catch (err) {
         res.status(500).json({ erro: "Erro na importação: " + err.message });
     }

@@ -1,0 +1,14 @@
+{
+
+    "titulo": "EurovisionDataset",
+
+    "tipo": "dataset",
+
+    "dataCriacao": "2026-05-10",
+
+    "ficheiros": [
+
+        "EurovisionDatasetEW.json"
+    ]
+
+}

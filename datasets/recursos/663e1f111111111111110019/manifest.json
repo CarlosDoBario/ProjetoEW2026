@@ -1,0 +1,18 @@
+{
+
+    "titulo": "Fichas TP IA",
+
+    "tipo": "ficha",
+
+    "dataCriacao": "2026-05-10",
+
+    "ficheiros": [
+
+        "FichaTP1-IA.txt",
+
+        "FichaTP2-IA.txt",
+
+        "FichaTP3-IA.txt"
+    ]
+
+}
