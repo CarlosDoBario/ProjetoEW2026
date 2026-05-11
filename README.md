@@ -66,7 +66,7 @@ Para a gestão e persistência da informação, a plataforma utiliza o MongoDB, 
 
 O sistema está organizado em dois grandes grupos de rotas: as rotas de interface (geridas em routes/index.js), que respondem aos pedidos do navegador e renderizam as paginas Pug, e as rotas de API (geridas em routes/api.js), que manipulam os dados no MongoDB e devolvem respostas em formato JSON.
 
-- API de Dados:
+- **API de Dados:**
   A API REST interna é o núcleo funcional do sistema. Todos os pedidos são prefixados por `/api`:
 
    | Método | Rota | Descrição |
@@ -82,6 +82,25 @@ O sistema está organizado em dois grandes grupos de rotas: as rotas de interfac
    | `GET` | `/recursos/top` | Devolve os recursos com melhor pontuação média. |
    | `POST` | `/recursos/:id/posts` | Cria uma nova publicação associada a um recurso. |
 
+- **Rotas de Interface:** 
+   Estas rotas são responsáveis por gerir a navegação do utilizador e a lógica de apresentação. A maioria destas rotas utiliza o axios para comunicar com a API interna antes de renderizar a página.
+  
+  - Autenticação e Perfil:
+    - *GET /login* e *GET /registo*: Apresentam os formulários de entrada e criação de conta.
+    - *GET /perfil*: Exibe os dados do utilizador e a lista de recursos por ele produzidos.
+
+  - Gestão de Recursos:
+    - *GET /recursos*: Página principal de listagem com suporte a filtros de pesquisa.
+    - *GET /recursos/:id* : Vista detalhada de um recurso, incluindo o fórum de discussão e sistema de rating.
+    - *GET /upload*: Formulário de submissão de pacotes ZIP (SIP), restrito a Produtores e Administradores.
+    - *GET /recursos/:id/download*: Rota que reconstrói o pacote (DIP) em tempo real para transferência.
+   
+   - Área Social e Administração:
+     - *GET /feed*: Página de destaques com as novidades e os recursos mais populares.  
+     - *GET /admin*: Painel de gestão de utilizadores, acessível apenas ao perfil de Administrador.  
+     - *POST /posts/:id/comentarios*: Permite adicionar comentários a publicações existentes.
+    
+  
 
 ## Perfis de Utilizador:
 
