@@ -62,6 +62,27 @@ Para a gestão e persistência da informação, a plataforma utiliza o MongoDB, 
 - **Interação Social:** Foi desenvolvida uma área de interação que permite aos utilizadores avaliar recursos através de um sistema de ratings. Além disso, cada recurso possui um fórum dedicado onde podem ser criados posts e comentários para promover a discussão.
 - **Feed Dinâmico:** A página principal atua como um centro de destaques, apresentando os recursos submetidos mais recentemente na plataforma e os "Melhores Classificados" do sistema.
 
+## Estrutura e Documentação das Rotas:
+
+O sistema está organizado em dois grandes grupos de rotas: as rotas de interface (geridas em routes/index.js), que respondem aos pedidos do navegador e renderizam as paginas Pug, e as rotas de API (geridas em routes/api.js), que manipulam os dados no MongoDB e devolvem respostas em formato JSON.
+
+- API de Dados:
+  A API REST interna é o núcleo funcional do sistema. Todos os pedidos são prefixados por `/api`:
+
+   | Método | Rota | Descrição |
+   | :--- | :--- | :--- |
+   | `POST` | `/usuarios/login` | Autentica um utilizador e devolve o token JWT. |
+   | `POST` | `/usuarios/registo` | Cria um novo utilizador no sistema. |
+   | `GET` | `/usuarios/:id` | Recupera os detalhes de um utilizador específico. |
+   | `GET` | `/recursos` | Lista todos os recursos, permitindo filtragem por query strings. |
+   | `POST` | `/recursos` | Endpoint de ingestão: processa o SIP, valida o manifesto e armazena o AIP. |
+   | `GET` | `/recursos/:id` | Devolve os metadados completos de um recurso. |
+   | `POST` | `/recursos/:id/avaliar` | Regista uma nova classificação (estrelas) num recurso. |
+   | `GET` | `/recursos/recentes` | Devolve os recursos submetidos nos últimos 7 dias. |
+   | `GET` | `/recursos/top` | Devolve os recursos com melhor pontuação média. |
+   | `POST` | `/recursos/:id/posts` | Cria uma nova publicação associada a um recurso. |
+
+
 ## Perfis de Utilizador:
 
 A plataforma implementa um sistema de controlo de acessos baseado em permissões, suportado por JSON Web Tokens. Este modelo garante que diferentes atores tenham acesso a funcionalidades adequadas ao seu papel no sistema, assegurando a privacidade e integridade do arquivo. O sistema divide-se em três perfis principais:
