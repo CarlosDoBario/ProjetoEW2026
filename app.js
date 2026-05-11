@@ -7,14 +7,15 @@ const createError = require('http-errors');
 const session = require('express-session');
 const flash = require('connect-flash');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
+
 const indexRouter = require('./routes/index'); 
 const apiRouter = require('./routes/api');
 
 const app = express();
 
-// --- Configuração da Base de Dados (Ajustada para Docker) ---
-// Se existir a variável MONGO_URL no ambiente (vinda do docker-compose), usa essa.
-// Caso contrário, tenta o localhost (para desenvolvimento local fora do Docker).
+
 const mongoDB = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/mongoEW';
 
 mongoose.connect(mongoDB)
@@ -33,6 +34,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser()); 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // Configuração de Sessão e Flash
 app.use(session({
   secret: 'ProjetoEW2026_Secret_Key',
@@ -45,7 +48,6 @@ app.use(flash());
 app.use((req, res, next) => {
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
-  // O utilizador pode vir do req.user (se usares Passport) ou da sessão
   res.locals.user = req.user || req.session.user || null; 
   next();
 });
@@ -64,7 +66,7 @@ app.use((err, req, res, next) => {
   res.render('error', { user: res.locals.user });
 });
 
-// Definição da Porta (Docker utiliza frequentemente a variável PORT)
+// Definição da Porta 
 const PORT = process.env.PORT || 7777;
 app.listen(PORT, () => {
   console.log(`

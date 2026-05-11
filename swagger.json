@@ -1,0 +1,190 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "EngWeb2026 - API de Gestão de Recursos",
+    "description": "Documentação completa da API para o projeto de Engenharia Web.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7777",
+      "description": "Servidor Local"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Usuario": {
+        "type": "object",
+        "required": ["nome", "email", "password", "nivel"],
+        "properties": {
+          "nome": { "type": "string", "example": "Francisco Queirós" },
+          "email": { "type": "string", "example": "francisco@exemplo.com" },
+          "password": { "type": "string", "example": "senha123" },
+          "nivel": { "type": "string", "enum": ["administrador", "produtor", "consumidor"], "example": "administrador" },
+          "filiacao": { "type": "string", "example": "Universidade do Minho" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/usuarios/login": {
+      "post": {
+        "tags": ["Autenticação"],
+        "summary": "Login do utilizador",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Token JWT retornado" } }
+      }
+    },
+    "/api/usuarios/registo": {
+      "post": {
+        "tags": ["Autenticação"],
+        "summary": "Registo de novo utilizador",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Usuario" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Utilizador criado" } }
+      }
+    },
+    "/api/recursos": {
+      "get": {
+        "tags": ["Recursos"],
+        "summary": "Listar recursos com filtros e ordenação",
+        "parameters": [
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "tipo", "in": "query", "schema": { "type": "string" } },
+          { "name": "sort", "in": "query", "schema": { "type": "string", "enum": ["data", "downloads", "titulo"] } }
+        ],
+        "responses": { "200": { "description": "Lista de recursos" } }
+      },
+      "post": {
+        "tags": ["Recursos"],
+        "summary": "Upload de novo recurso (Ficheiro ZIP + Metadados)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["recursoZip", "titulo", "produtor"],
+                "properties": {
+                  "recursoZip": { "type": "string", "format": "binary" },
+                  "titulo": { "type": "string", "example": "Trabalho Final" },
+                  "tipo": { "type": "string", "example": "Dataset" },
+                  "produtor": { "type": "string", "example": "Carlos Daniel Lopes Cunha" },
+                  "visibilidade": { "type": "string", "enum": ["público", "privado"], "default": "público" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Recurso guardado" } }
+      }
+    },
+    "/api/recursos/{id}": {
+      "get": {
+        "tags": ["Recursos"],
+        "summary": "Detalhes do recurso e conteúdo AIP",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Dados do recurso" } }
+      },
+      "put": {
+        "tags": ["Recursos"],
+        "summary": "Atualizar metadados do recurso",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "titulo": { "type": "string" },
+                  "tipo": { "type": "string" },
+                  "visibilidade": { "type": "string", "enum": ["público", "privado"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Recurso atualizado" } }
+      },
+      "delete": {
+        "tags": ["Recursos"],
+        "summary": "Eliminar recurso",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Recurso removido" } }
+      }
+    },
+    "/api/recursos/{id}/avaliar": {
+      "post": {
+        "tags": ["Recursos"],
+        "summary": "Submeter avaliação (1-5)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "nota": { "type": "integer", "minimum": 1, "maximum": 5 } } } } }
+        },
+        "responses": { "200": { "description": "Avaliação registada" } }
+      }
+    },
+    "/api/recursos/{id}/posts": {
+      "post": {
+        "tags": ["Social"],
+        "summary": "Criar post/comentário sobre um recurso",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["titulo", "conteudo"],
+                "properties": {
+                  "titulo": { "type": "string", "example": "Comentário Geral" },
+                  "conteudo": { "type": "string", "example": "Este recurso ajudou imenso no estudo." },
+                  "autor": { "type": "string", "example": "Francisco Queirós" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Post criado" } }
+      }
+    },
+    "/api/admin/exportar": {
+      "get": {
+        "tags": ["Administração"],
+        "summary": "Exportação completa do sistema (ZIP)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Ficheiro ZIP gerado com sucesso" } }
+      }
+    }
+  }
+}

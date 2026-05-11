@@ -3,7 +3,6 @@ extends layout
 block content
   .w3-container.w3-margin-top.w3-center
     .w3-card-4.w3-white(style="max-width: 800px; margin: auto; padding: 40px;")
-      //- Seleção de ícone e título baseada no status do erro
       if error.status == 404
         h1.w3-text-orange.w3-jumbo 404
         h2.w3-text-dark-grey Página Não Encontrada
@@ -19,7 +18,7 @@ block content
 
       hr.w3-border-light-grey
 
-      //- Relatório de erros (Stack Trace) visível apenas em desenvolvimento
+      //- Relatório de erros
       if error.stack
         .w3-left-align.w3-light-grey.w3-padding.w3-round.w3-small.w3-margin-bottom(style="overflow-x: auto;")
           pre= error.stack

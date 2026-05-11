@@ -21,7 +21,8 @@
     "mongoose": "^9.6.1",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
-    "pug": "^3.0.4"
+    "pug": "^3.0.4",
+    "swagger-ui-express": "^4.1.6"
   }
 }
 

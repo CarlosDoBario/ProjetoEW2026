@@ -45,7 +45,6 @@ block content
               br
               span.w3-text-grey= perfil.dataRegisto ? perfil.dataRegisto.substring(0, 10) : 'N/A'
             
-            // NOVOS BOTÕES ADICIONADOS AQUI
             hr
             a.w3-button.w3-blue.w3-round.w3-margin-right.w3-small(href="/perfil/editar") ✏️ Editar Perfil
             a.w3-button.w3-red.w3-round.w3-small(href="/logout") 🚪 Sair
@@ -118,7 +117,6 @@ block content
                         else
                           span.w3-small.w3-text-grey Sem votos
                         
-                        // ZONA DE DOWNLOADS NO PERFIL
                         br
                         span.w3-small.w3-text-grey Downloads: 
                           b= r.downloads || 0

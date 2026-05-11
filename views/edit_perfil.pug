@@ -7,7 +7,6 @@ block content
         h2 Editar Perfil
       
       .w3-container.w3-padding-16
-        // Lógica para decidir para onde enviar o formulário
         - const actionUrl = (isEditAdmin) ? "/admin/usuarios/" + user._id + "/editar" : "/perfil/editar"
         
         form.w3-container(method="POST" action=actionUrl)

@@ -14,7 +14,7 @@ services:
   mongodb:
     image: mongo:latest
     ports:
-      - "27018:27017"  # <--- MUDANÇA AQUI: O teu PC usa a 27018, o Docker usa a 27017
+      - "27018:27017" 
     volumes:
       - mongo_data:/data/db
 

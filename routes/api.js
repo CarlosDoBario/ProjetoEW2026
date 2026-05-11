@@ -108,13 +108,11 @@ router.get('/recursos', async (req, res) => {
     } catch (err) { res.status(500).json({ erro: err.message }); }
 });
 
-// REMOÇÃO DE RECURSOS
 router.delete('/recursos/:id', verificaToken, async (req, res) => {
     try {
         const recurso = await Recurso.findById(req.params.id);
         if (!recurso) return res.status(404).json({ erro: "Recurso não encontrado." });
 
-        // Verificação: Administrador ou o próprio Produtor
         if (req.user.nivel !== 'administrador' && recurso.produtor !== req.user.nome) {
             return res.status(403).json({ erro: "Não tem permissão para apagar este recurso." });
         }
@@ -154,17 +152,13 @@ router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
             return res.status(400).json({ erro: `Erro de formato: O ficheiro '${manifestEntry.entryName}' contém erros de sintaxe.` });
         }
 
-        // 1. Validação de Metadados (O que já tinhas)
+        // Validação de Metadados
         const campos = ['titulo', 'tipo', 'dataCriacao'];
         const emFalta = campos.filter(c => !manifest[c]);
         if (emFalta.length > 0) {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             return res.status(400).json({ erro: `Faltam os campos obrigatórios: ${emFalta.join(', ')}` });
         }
-
-        // =========================================================================
-        // 2. VALIDAÇÃO ESTRUTURAL DO SIP (Obrigatório)
-        // =========================================================================
         
         // Verifica se o manifesto tem a lista de ficheiros declarada
         if (!manifest.ficheiros || !Array.isArray(manifest.ficheiros)) {
@@ -172,7 +166,6 @@ router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
             return res.status(400).json({ erro: "Validação SIP Falhou: O manifesto não contém um array 'ficheiros' válido." });
         }
 
-        // Obtém o nome de todos os ficheiros e pastas que vêm dentro do ZIP
         const nomesNoZip = zipEntries.map(e => e.entryName);
 
         // Verifica se todos os ficheiros declarados no manifesto existem realmente no ZIP
@@ -180,14 +173,11 @@ router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
 
         if (ficheirosEmFalta.length > 0) {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            // Cumpre a exigência: "um relatório de erros deverá ser enviado a quem fez a submissão"
             return res.status(400).json({ 
                 erro: `Validação Estrutural SIP Falhou: Ficheiros declarados no manifesto não foram encontrados no ZIP: [${ficheirosEmFalta.join(', ')}].` 
             });
         }
-        // =========================================================================
 
-        // 3. Se passou em tudo, guardar na BD
         const novoRecurso = new Recurso({
             titulo: manifest.titulo,
             tipo: manifest.tipo,
@@ -202,7 +192,7 @@ router.post('/recursos', upload.single('recursoZip'), async (req, res) => {
         const storagePath = path.join(__dirname, '../uploads/recursos', guardado._id.toString());
         if (!fs.existsSync(storagePath)) fs.mkdirSync(storagePath, { recursive: true });
         
-        // Extrair ZIP para a pasta final
+        // Extrai ZIP para a pasta final
         zip.extractAllTo(storagePath, true);
         guardado.caminhoFicheiro = storagePath;
         await guardado.save();
@@ -325,25 +315,20 @@ router.get('/admin/exportar', verificaToken, async (req, res) => {
     try {
         const zip = new AdmZip();
 
-        // 1. Guardar a base de dados num JSON
         const data = {
             users: await UserModel.find(),
             recursos: await Recurso.find(),
             posts: await Post.find()
         };
         
-        // Adiciona o ficheiro JSON diretamente ao ZIP em memória
         const jsonString = JSON.stringify(data, null, 2);
         zip.addFile('db_backup.json', Buffer.from(jsonString, 'utf8'));
 
-        // 2. Guardar a pasta com os ficheiros extraídos
         const recursosPath = path.join(__dirname, '../uploads/recursos');
         if (fs.existsSync(recursosPath)) {
-            // Adiciona a pasta inteira ao ZIP com o nome "recursos"
             zip.addLocalFolder(recursosPath, 'recursos');
         }
 
-        // 3. Gerar e Enviar para o Cliente
         const zipBuffer = zip.toBuffer();
         res.set('Content-Type', 'application/zip');
         res.set('Content-Disposition', 'attachment; filename="sistema_backup.zip"');
@@ -372,7 +357,6 @@ router.post('/admin/importar', verificaToken, upload.single('backupZip'), async 
 
         const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
 
-        // 1. Limpar e Restaurar BD
         await UserModel.deleteMany({});
         await Recurso.deleteMany({});
         await Post.deleteMany({});
@@ -381,17 +365,14 @@ router.post('/admin/importar', verificaToken, upload.single('backupZip'), async 
         if (data.recursos) await Recurso.insertMany(data.recursos);
         if (data.posts) await Post.insertMany(data.posts);
 
-        // 2. Restaurar Ficheiros para a pasta UPLOADS oficial
         const recursosNoZip = path.join(tempDir, 'recursos');
         const targetDir = path.resolve(__dirname, '../uploads/recursos');
         
         if (fs.existsSync(recursosNoZip)) {
-            // Garante que a pasta de destino existe e está limpa
             if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
             fsExtra.copySync(recursosNoZip, targetDir);
         }
 
-        // 3. Limpeza
         fsExtra.removeSync(tempDir);
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 

@@ -215,15 +215,13 @@ router.post('/upload', auth.verificaAcesso, upload.single('recursoZip'), (req, r
         })
         .catch(err => {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            // Captura a mensagem de erro detalhada da API (ex: falta de manifesto)
             const msg = err.response?.data?.erro || 'Erro ao submeter recurso.';
             req.flash('error', msg);
             res.redirect('/upload');
         });
 });
 
-// --- SOCIAL ---
-// (Resto das rotas sociais mantidas como no original...)
+// SOCIAL 
 router.post('/recursos/:id/posts', auth.verificaAcesso, (req, res) => {
     axios.post(`${apiURL}/recursos/${req.params.id}/posts`, { ...req.body, autor: req.user.nome })
     .then(() => {
@@ -277,7 +275,7 @@ router.post('/posts/:postId/comentarios/:comentarioId/apagar', auth.verificaAces
     });
 });
 
-// --- ADMIN ---
+// ADMIN
 router.get('/admin', auth.verificaAcesso, async (req, res, next) => {
     if (req.user.nivel !== 'administrador') {
         const err = new Error("Acesso Negado: Apenas administradores podem entrar aqui.");
