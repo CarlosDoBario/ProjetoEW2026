@@ -29,7 +29,29 @@ O sistema foi desenhado com base numa arquitetura cliente-servidor, adotando um 
 - **Base de Dados (MongoDB e Mongoose)**: Para a persistência de dados, optou-se pela base de dados MongoDB. A comunicação com a base de dados é gerida através do ODM mongoose. Foram implementados três esquemas (schemas) principais que suportam as entidades do sistema: o modelo *User* para gerir os utilizadores e os seus níveis de acesso (models/user.js), o modelo *Recurso* para guardar os metadados dos SIPs submetidos (models/recurso.js) e o modelo *Post* para gerir as publicações e comentários associados a cada recurso na área de discussão (models/post.js).
 - **Back-end / API (Node.js e Express.js)**: O servidor principal foi construído em Node.js com a framework Express.js. A arquitetura segue uma abordagem modular, isolando a lógica de negócio das rotas HTTP. O ficheiro principal de rotas da API (routes/api.js) atua como um controlador frontal de requisições, delegando as operações diretas sobre a base de dados aos respetivos Controladores dedicados localizados na pasta controllers/ (como user.js, recurso.js e post.js).
 - **Front-end (Pug e W3.CSS)**: A interface é gerada pelo servidor, que usa o *engine Pug*. Os ficheiros presentes na diretoria views/ (como layout.pug, recursos.pug, feed.pug, etc.) recebem os dados do back-end e são compilados em HTML antes de serem enviados para o navegador. O design e a responsividade da plataforma são garantidos pela biblioteca W3.CSS, que permite uma prototipagem rápida de componentes visuais através de classes utilitárias.
-- **Segurança e Autenticação:** A segurança da plataforma é gerida em duas frentes: proteção de dados estáticos e controlo de acesso a rotas. As passwords dos utilizadores são armazenadas de forma segura na base de dados recorrendo a mecanismos de *hashing* através da biblioteca *bcryptjs*. Todo o processo de controlo de sessão e autorização (diferenciando os perfis de administrador, produtor e consumidor) é assegurado através de JSON Web Tokens (JWT). Aquando do login, o token é gerado pelo back-end (utilizando o módulo jsonwebtoken) e verificado em cada pedido restrito por um middleware de autenticação.
+- **Segurança e Autenticação:** A segurança da plataforma é gerida em duas frentes: proteção de dados estáticos e controlo de acesso a rotas. As passwords dos utilizadores são armazenadas de forma segura na base de dados recorrendo a mecanismos de *hashing*. Todo o processo de controlo de sessão e autorização (diferenciando os perfis de administrador, produtor e consumidor) é assegurado através de JSON Web Tokens (JWT). Aquando do login, o token é gerado pelo back-end (utilizando o módulo jsonwebtoken) e verificado em cada pedido restrito por um middleware de autenticação.
+
+## Modelo de Dados:
+
+Para a gestão e persistência da informação, a plataforma utiliza o MongoDB, uma base de dados NoSQL orientada a documentos, em conjunto com o ODM Mongoose para a definição de esquemas (schemas) e validação de dados no ambiente Node.js. O sistema baseia-se em três modelos fundamentais que estruturam toda a lógica de negócio:
+
+- **Utilizadores (User):** Este modelo armazena a informação relativa aos perfis e permissões de acesso ao sistema:
+  - Identidade e Contacto: O sistema regista o nome e o email (único) do utilizador.
+  - Segurança: As palavras-passe (password) são guardadas recorrendo a algoritmos de hashing (através da biblioteca bcryptjs) para garantir a proteção dos dados.
+  - Controlo de Acesso: O campo *nivel* define as permissões através de um enum com três valores: administrador, produtor ou consumidor, sendo o último o valor por defeito.
+  - Metadados de Perfil: Inclui a filiacao institucional (curso, departamento, etc.), a dataRegisto e o registo da dataUltimoAcesso.
+
+- **Recursos Educativos (Recurso):** A entidade central do sistema, responsável por gerir os pacotes de informação:
+  - Metainformação SIP: Armazena o titulo, subtitulo (opcional) e o tipo de recurso (ex: relatório, tese, artigo) extraídos do manifesto durante a ingestão.
+  - Origem: Regista o produtor (autor do recurso) e a *dataCriacao* original.
+  - Estado do Arquivo: Define a visibilidade (público ou privado), a *dataRegisto* no sistema e o *caminhoFicheiro* que aponta para o diretório AIP no servidor.
+  - Métricas e Social: Inclui contadores para o número de downloads e uma estrutura de ranking que armazena a *somaEstrelas* e o *numVotos* para calcular a média de avaliação.
+  - Taxonomia: Um array de classificacao permite a organização por hashtags ou temas.  
+
+- **Interações e Fórum (Post):** Modelo dedicado à componente social e discussão em torno dos recursos.
+  - Ligação: Cada documento está vinculado a um recurso específico através do campo *recursoId*.
+  - Conteúdo: Identifica o autor e o conteudo da publicação original.
+  - Comentários: Utiliza uma estrutura de subdocumentos (array) para gerir as respostas, guardando para cada comentário o seu autor, conteudo e a respetiva data.
 
 ## Funcionalidades Implementadas:
 
