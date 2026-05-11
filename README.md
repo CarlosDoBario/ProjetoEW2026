@@ -48,7 +48,7 @@ Para a gestão e persistência da informação, a plataforma utiliza o MongoDB, 
   - Métricas e Social: Inclui contadores para o número de downloads e uma estrutura de ranking que armazena a *somaEstrelas* e o *numVotos* para calcular a média de avaliação.
   - Taxonomia: Um array de classificacao permite a organização por hashtags ou temas.  
 
-- **Interações e Fórum (Post):** Modelo dedicado à componente social e discussão em torno dos recursos.
+- **Interações e Fórum (Post):** Modelo dedicado à componente social e discussão em torno dos recursos:
   - Ligação: Cada documento está vinculado a um recurso específico através do campo *recursoId*.
   - Conteúdo: Identifica o autor e o conteudo da publicação original.
   - Comentários: Utiliza uma estrutura de subdocumentos (array) para gerir as respostas, guardando para cada comentário o seu autor, conteudo e a respetiva data.
@@ -61,6 +61,24 @@ Para a gestão e persistência da informação, a plataforma utiliza o MongoDB, 
 - **Disseminação (DIP):** O processo de disseminação permite que os utilizadores descarreguem os recursos armazenados. O sistema reconstrói o pacote para entrega (DIP) em formato ZIP, mantendo a integridade dos ficheiros originais da pasta de armazenamento.
 - **Interação Social:** Foi desenvolvida uma área de interação que permite aos utilizadores avaliar recursos através de um sistema de ratings. Além disso, cada recurso possui um fórum dedicado onde podem ser criados posts e comentários para promover a discussão.
 - **Feed Dinâmico:** A página principal atua como um centro de destaques, apresentando os recursos submetidos mais recentemente na plataforma e os "Melhores Classificados" do sistema.
+
+## Perfis de Utilizador:
+
+A plataforma implementa um sistema de controlo de acessos baseado em permissões, suportado por JSON Web Tokens. Este modelo garante que diferentes atores tenham acesso a funcionalidades adequadas ao seu papel no sistema, assegurando a privacidade e integridade do arquivo. O sistema divide-se em três perfis principais:
+
+- **Consumidor:** É o nível de acesso base atribuído aos novos utilizadores após o registo:
+  - Pode navegar pelo feed dinâmico, pesquisar e consultar metadados de recursos disponíveis na plataforma e fazer download de pacotes com visibilidade "pública".
+  - Tem permissão para participar ativamente na comunidade, podendo avaliar recursos (1 a 5 estrelas), criar posts de discussão e comentar em publicações de outros utilizadores.
+
+- **Produtor:** Perfil destinado a utilizadores que contribuem ativamente para o conteúdo disponível na plataforma (autores, docentes ou alunos que partilham materiais):
+  - Herda todas as permissões do Consumidor. Adicionalmente, tem acesso à área de submissão (upload) para realizar a ingestão de novos pacotes SIP.
+  - Pode definir a visibilidade dos seus materiais (público ou privado), editar metadados e apagar os recursos dos quais é o autor original. Os seus recursos privados são visíveis apenas para si mesmo e para os administradores. 
+
+- **Administrador:** É o perfil de gestão de topo, responsável pela manutenção geral e moderação da plataforma:
+  - Tem controlo total sobre o sistema. Pode aceder ao painel de administração (/admin), visualizar a lista completa de utilizadores registados e gerir as suas contas (editar perfis, apagar contas ou promover Consumidores a Produtores/Administradores).
+  - Tem autoridade para intervir em qualquer recurso submetido, independentemente da autoria ou visibilidade, e pode moderar o fórum eliminando comentários ou posts inadequados.
+
+
 
 ## Desafios e Decisões Técnicas:
 
